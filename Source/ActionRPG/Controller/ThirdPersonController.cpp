@@ -6,12 +6,9 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/GameplayStatics.h"
 
-DEFINE_LOG_CATEGORY(LogThirdPersonController);
+#include "ActionRPG/Character/GameCharacterAnimInstance.h"
 
-const FVector2D& AThirdPersonController::GetInputAxis() const
-{
-    return InputAxis;
-}
+DEFINE_LOG_CATEGORY(LogThirdPersonController);
 
 void AThirdPersonController::SetupInputComponent()
 {
@@ -77,7 +74,10 @@ void AThirdPersonController::OnInputAxisMoveForward(float AxisValue)
 {
     FRotator Rotator(0, GetControlRotation().Yaw, 0);
     FVector Direction = UKismetMathLibrary::GetForwardVector(Rotator);
-    InputAxis.Y = AxisValue;
+
+    if (IsValid(AnimInstance)) {
+        AnimInstance->InputAxis.Y = AxisValue;
+    }
 
     GetPawn()->AddMovementInput(Direction, AxisValue);
 }
@@ -86,7 +86,10 @@ void AThirdPersonController::OnInputAxisMoveRight(float AxisValue)
 {
     FRotator Rotator(0, GetControlRotation().Yaw, 0);
     FVector Direction = UKismetMathLibrary::GetRightVector(Rotator);
-    InputAxis.X = AxisValue;
+
+    if (IsValid(AnimInstance)) {
+        AnimInstance->InputAxis.X = AxisValue;
+    }
 
     GetPawn()->AddMovementInput(Direction, AxisValue);
 }
@@ -161,6 +164,15 @@ void AThirdPersonController::OnPossess(APawn* aPawn)
     if (IsValid(CharacterMovementComp))
     {
         CharacterMovementComp->bOrientRotationToMovement = true;
+    }
+
+    const auto TempCharacter = Cast<ACharacter>(aPawn);
+    if (IsValid(TempCharacter))
+    {
+        const auto Mesh = TempCharacter->GetMesh();
+        if (IsValid(Mesh)) {
+            AnimInstance = Cast<UGameCharacterAnimInstance>(Mesh->GetAnimInstance());
+        }
     }
 }
 

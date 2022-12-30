@@ -12,6 +12,8 @@
 
 DECLARE_LOG_CATEGORY_EXTERN(LogThirdPersonController, Log, All);
 
+class UGameCharacterAnimInstance;
+
 /**
  * 
  */
@@ -19,9 +21,6 @@ UCLASS()
 class ACTIONRPG_API AThirdPersonController : public APlayerController
 {
 	GENERATED_BODY()
-
-public:
-	const FVector2D& GetInputAxis() const;
 
 protected:
 	virtual void SetupInputComponent() override;
@@ -73,5 +72,6 @@ private:
 	UCameraComponent* FollowCamera = nullptr;
 	UCharacterMovementComponent* CharacterMovementComp = nullptr;
 
-	FVector2D InputAxis;
+	// Animation
+	UGameCharacterAnimInstance* AnimInstance = nullptr;
 };

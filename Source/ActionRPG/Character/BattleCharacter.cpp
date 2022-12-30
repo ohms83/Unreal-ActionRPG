@@ -15,7 +15,6 @@ ABattleCharacter::ABattleCharacter()
 void ABattleCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	
 }
 
 // Called every frame

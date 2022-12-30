@@ -3,12 +3,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Character.h"
+#include "GameCharacter.h"
 #include "CharacterData.h"
 #include "BattleCharacter.generated.h"
 
 UCLASS()
-class ACTIONRPG_API ABattleCharacter : public ACharacter
+class ACTIONRPG_API ABattleCharacter : public AGameCharacter
 {
 	GENERATED_BODY()
 
