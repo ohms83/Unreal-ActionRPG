@@ -37,6 +37,19 @@ protected:
 	virtual void OnPossess(APawn* aPawn) override;
 	virtual void OnUnPossess() override;
 
+	virtual void OnAnimationStateEnter(const FString& AnimStateName);
+	virtual void OnAnimationStateExit(const FString& AnimStateName);
+	virtual void OnAnimationStateFullyBlend(const FString& AnimStateName);
+
+	const UGameCharacterAnimInstance* GetAnimInstance() const { return AnimInstance; }
+	UGameCharacterAnimInstance* GetAnimInstance() { return AnimInstance; }
+
+	const UCharacterMovementComponent* GetMoveComponent() const { return CharacterMovementComp; }
+	UCharacterMovementComponent* GetMoveComponent() { return CharacterMovementComp; }
+
+private:
+	void InitAnimInstance(APawn* aPawn);
+
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	FName MoveForwardEventName = "MoveForward";
@@ -74,4 +87,5 @@ private:
 
 	// Animation
 	UGameCharacterAnimInstance* AnimInstance = nullptr;
+	FDelegateHandle AnimEnterStateDelegateHandles;
 };

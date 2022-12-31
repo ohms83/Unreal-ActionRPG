@@ -14,7 +14,7 @@ void AThirdPersonController::SetupInputComponent()
 {
 	Super::SetupInputComponent();
 
-    if (InputComponent)
+    if (IsValid(InputComponent))
     {
         InputComponent->BindAxis
         (
@@ -68,6 +68,27 @@ void AThirdPersonController::SetupInputComponent()
             &AThirdPersonController::OnInputActionStopJumping
         );
     }
+}
+
+void AThirdPersonController::InitAnimInstance(APawn* aPawn)
+{
+    const auto TempCharacter = Cast<ACharacter>(aPawn);
+    if (!IsValid(TempCharacter)) {
+        return;
+    }
+
+    const auto Mesh = TempCharacter->GetMesh();
+    if (!IsValid(Mesh)) {
+        return;
+    }
+
+    AnimInstance = Cast<UGameCharacterAnimInstance>(Mesh->GetAnimInstance());
+    if (!IsValid(AnimInstance)) {
+        return;
+    }
+
+    AnimEnterStateDelegateHandles = AnimInstance->OnEnterState().AddUObject(
+        this, &AThirdPersonController::OnAnimationStateEnter);
 }
 
 void AThirdPersonController::OnInputAxisMoveForward(float AxisValue)
@@ -166,14 +187,7 @@ void AThirdPersonController::OnPossess(APawn* aPawn)
         CharacterMovementComp->bOrientRotationToMovement = true;
     }
 
-    const auto TempCharacter = Cast<ACharacter>(aPawn);
-    if (IsValid(TempCharacter))
-    {
-        const auto Mesh = TempCharacter->GetMesh();
-        if (IsValid(Mesh)) {
-            AnimInstance = Cast<UGameCharacterAnimInstance>(Mesh->GetAnimInstance());
-        }
-    }
+    InitAnimInstance(aPawn);
 }
 
 void AThirdPersonController::OnUnPossess()
@@ -182,14 +196,32 @@ void AThirdPersonController::OnUnPossess()
 
     if (IsValid(CameraBoom))
     {
-        CameraBoom->DetachFromParent();
+        CameraBoom->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
         CameraBoom = nullptr;
     }
     if (IsValid(FollowCamera))
     {
-        FollowCamera->DetachFromParent();
+        FollowCamera->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
         FollowCamera = nullptr;
     }
 
     CharacterMovementComp = nullptr;
+
+    if (IsValid(AnimInstance))
+    {
+        AnimInstance->OnEnterState().Remove(AnimEnterStateDelegateHandles);
+    }
+}
+
+void AThirdPersonController::OnAnimationStateEnter(const FString& AnimStateName)
+{
+    //UE_LOG(LogThirdPersonController, Log, TEXT("Enter Anim State=%s"), *AnimStateName);
+}
+void AThirdPersonController::OnAnimationStateExit(const FString& AnimStateName)
+{
+
+}
+void AThirdPersonController::OnAnimationStateFullyBlend(const FString& AnimStateName)
+{
+
 }
