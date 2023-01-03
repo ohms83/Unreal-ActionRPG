@@ -22,6 +22,21 @@ class ACTIONRPG_API AThirdPersonController : public APlayerController
 {
 	GENERATED_BODY()
 
+public:
+	enum class EInputLockFlag : uint8
+	{
+		None		= 0x00,
+		Camera		= 0x01,
+		Movement	= 0x02,
+		All			= 0xFF,
+	};
+
+	// Lock the specified input from being processed.
+	void LockInput(EInputLockFlag LockFlag);
+	// Unlock the specified input.
+	void UnlockInput(EInputLockFlag LockFlag);
+	bool IsInputLocked(EInputLockFlag LockFlag) const;
+
 protected:
 	virtual void SetupInputComponent() override;
 
@@ -51,6 +66,7 @@ private:
 	void InitAnimInstance(APawn* aPawn);
 
 private:
+	uint8 InputLockFlag = (int8)EInputLockFlag::None;
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	FName MoveForwardEventName = "MoveForward";
 	UPROPERTY(EditDefaultsOnly, Category = "Input")

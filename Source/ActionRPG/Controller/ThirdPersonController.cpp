@@ -70,6 +70,21 @@ void AThirdPersonController::SetupInputComponent()
     }
 }
 
+void AThirdPersonController::LockInput(EInputLockFlag LockFlag)
+{
+    InputLockFlag |= (uint8)LockFlag;
+}
+
+void AThirdPersonController::UnlockInput(EInputLockFlag LockFlag)
+{
+    InputLockFlag &= ~(uint8)(LockFlag);
+}
+
+bool AThirdPersonController::IsInputLocked(EInputLockFlag LockFlag) const
+{
+    return InputLockFlag & (uint8)LockFlag;
+}
+
 void AThirdPersonController::InitAnimInstance(APawn* aPawn)
 {
     const auto TempCharacter = Cast<ACharacter>(aPawn);
@@ -97,6 +112,10 @@ void AThirdPersonController::InitAnimInstance(APawn* aPawn)
 
 void AThirdPersonController::OnInputAxisMoveForward(float AxisValue)
 {
+    if (IsInputLocked(EInputLockFlag::Movement)) {
+        return;
+    }
+
     FRotator Rotator(0, GetControlRotation().Yaw, 0);
     FVector Direction = UKismetMathLibrary::GetForwardVector(Rotator);
 
@@ -109,6 +128,10 @@ void AThirdPersonController::OnInputAxisMoveForward(float AxisValue)
 
 void AThirdPersonController::OnInputAxisMoveRight(float AxisValue)
 {
+    if (IsInputLocked(EInputLockFlag::Movement)) {
+        return;
+    }
+
     FRotator Rotator(0, GetControlRotation().Yaw, 0);
     FVector Direction = UKismetMathLibrary::GetRightVector(Rotator);
 
@@ -121,16 +144,28 @@ void AThirdPersonController::OnInputAxisMoveRight(float AxisValue)
 
 void AThirdPersonController::OnInputTurn(float AxisValue)
 {
+    if (IsInputLocked(EInputLockFlag::Camera)) {
+        return;
+    }
+
     AddYawInput(AxisValue);
 }
 
 void AThirdPersonController::OnInputLookUp(float AxisValue)
 {
+    if (IsInputLocked(EInputLockFlag::Camera)) {
+        return;
+    }
+
     AddPitchInput(AxisValue);
 }
 
 void AThirdPersonController::OnInputTurnRate(float AxisValue)
 {
+    if (IsInputLocked(EInputLockFlag::Camera)) {
+        return;
+    }
+
     float DeltaSeconds = UGameplayStatics::GetWorldDeltaSeconds(this);
     float Yaw = DeltaSeconds * BaseTurnRate * AxisValue;
     AddYawInput(Yaw);
@@ -138,6 +173,10 @@ void AThirdPersonController::OnInputTurnRate(float AxisValue)
 
 void AThirdPersonController::OnInputLookUpRate(float AxisValue)
 {
+    if (IsInputLocked(EInputLockFlag::Camera)) {
+        return;
+    }
+
     float DeltaSeconds = UGameplayStatics::GetWorldDeltaSeconds(this);
     float Pitch = DeltaSeconds * BaseLookUpRate * AxisValue;
     AddPitchInput(Pitch);
@@ -145,6 +184,10 @@ void AThirdPersonController::OnInputLookUpRate(float AxisValue)
 
 void AThirdPersonController::OnInputActionJump()
 {
+    if (IsInputLocked(EInputLockFlag::Movement)) {
+        return;
+    }
+
     ACharacter* TempCharacter = GetCharacter();
     if (IsValid(TempCharacter)) {
         TempCharacter->Jump();
