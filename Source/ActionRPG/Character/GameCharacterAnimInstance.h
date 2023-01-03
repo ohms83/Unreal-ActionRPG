@@ -16,9 +16,6 @@ UCLASS()
 class ACTIONRPG_API UGameCharacterAnimInstance : public UAnimInstance
 {
 	GENERATED_BODY()
-
-public:
-	void PlayDodgeMontage();
 	
 public:
 	// Character's move speed using for Idle/Run blendspace
@@ -30,9 +27,6 @@ public:
 	// Axis value from the input event.
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character Properties")
 	FVector2D InputAxis;
-	// Dodge
-	UPROPERTY(EditDefaultsOnly, Category = "Montages")
-	UAnimMontage* DodgeMontage = nullptr;
 
 	DECLARE_EVENT_OneParam(UGameCharacterAnimInstance, FStateEvent, const FString&);
 

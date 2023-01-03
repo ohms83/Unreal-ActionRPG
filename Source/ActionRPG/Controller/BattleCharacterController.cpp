@@ -41,7 +41,6 @@ void ABattleCharacterController::SetupInputComponent()
 void ABattleCharacterController::OnInputActionDodge()
 {
     if (IsValid(DodgeBehavior) && DodgeBehavior->Dodge()) {
-        //DisableInput(this);
         LockInput(EInputLockFlag::Movement);
     }
 
@@ -59,7 +58,6 @@ void ABattleCharacterController::OnAnimationStateEnter(const FString& AnimStateN
 
     if (AnimStateName.Equals(TEXT("idle"), ESearchCase::IgnoreCase))
     {
-        //EnableInput(this);
         UnlockInput(EInputLockFlag::Movement);
     }
 }

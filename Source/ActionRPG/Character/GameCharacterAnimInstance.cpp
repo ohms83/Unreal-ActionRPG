@@ -5,15 +5,6 @@
 
 DEFINE_LOG_CATEGORY(LogGameCharacterAnimInstance);
 
-void UGameCharacterAnimInstance::PlayDodgeMontage()
-{
-	if (IsValid(DodgeMontage)) {
-		Montage_Play(DodgeMontage);
-		//Montage_SetBlendingOutDelegate()
-		UE_LOG(LogGameCharacterAnimInstance, Log, TEXT("Playing %s"), *(DodgeMontage->GetName()));
-	}
-}
-
 void UGameCharacterAnimInstance::BroadcastOnEnterState(const FString& StateName)
 {
 	StateEnterEvent.Broadcast(StateName);
