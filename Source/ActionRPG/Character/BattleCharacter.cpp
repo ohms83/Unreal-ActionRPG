@@ -2,6 +2,7 @@
 
 
 #include "BattleCharacter.h"
+#include "ActionRPG/Component/DodgeBehavior.h"
 
 // Sets default values
 ABattleCharacter::ABattleCharacter()
@@ -9,12 +10,14 @@ ABattleCharacter::ABattleCharacter()
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
+	DodgeBehavior = CreateDefaultSubobject<UDodgeBehavior>(TEXT("Dodge Behavior"));
 }
 
 // Called when the game starts or when spawned
 void ABattleCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+	//AddInstanceComponent(DodgeBehavior);
 }
 
 // Called every frame

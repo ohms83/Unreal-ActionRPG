@@ -3,6 +3,17 @@
 
 #include "BattleCharacterController.h"
 #include "ActionRPG/Character/GameCharacterAnimInstance.h"
+#include "ActionRPG/Component/DodgeBehavior.h"
+
+void ABattleCharacterController::BeginPlay()
+{
+    const auto aPawn = GetPawn();
+    if (!IsValid(aPawn)) {
+        return;
+    }
+
+    DodgeBehavior = Cast<UDodgeBehavior>(aPawn->GetComponentByClass(UDodgeBehavior::StaticClass()));
+}
 
 void ABattleCharacterController::SetupInputComponent()
 {
@@ -29,14 +40,7 @@ void ABattleCharacterController::SetupInputComponent()
 
 void ABattleCharacterController::OnInputActionDodge()
 {
-    const auto TempMoveComp = GetMoveComponent();
-    if (!IsValid(TempMoveComp) || TempMoveComp->IsFalling()) {
-        return;
-    }
-
-    const auto TempAnimInstance = GetAnimInstance();
-    if (IsValid(TempAnimInstance)) {
-        TempAnimInstance->PlayDodgeMontage();
+    if (IsValid(DodgeBehavior) && DodgeBehavior->Dodge()) {
         DisableInput(this);
     }
 

@@ -88,4 +88,6 @@ private:
 	// Animation
 	UGameCharacterAnimInstance* AnimInstance = nullptr;
 	FDelegateHandle AnimEnterStateDelegateHandles;
+	FDelegateHandle AnimExitStateDelegateHandles;
+	FDelegateHandle AnimFullyBlendStateDelegateHandles;
 };

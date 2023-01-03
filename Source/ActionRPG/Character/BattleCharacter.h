@@ -7,6 +7,8 @@
 #include "CharacterData.h"
 #include "BattleCharacter.generated.h"
 
+class UDodgeBehavior;
+
 UCLASS()
 class ACTIONRPG_API ABattleCharacter : public AGameCharacter
 {
@@ -29,4 +31,7 @@ public:
 
 private:
 	FCharacterStats Stats;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	UDodgeBehavior* DodgeBehavior = nullptr;
 };

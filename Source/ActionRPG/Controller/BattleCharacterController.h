@@ -6,6 +6,8 @@
 #include "ThirdPersonController.h"
 #include "BattleCharacterController.generated.h"
 
+class UDodgeBehavior;
+
 /**
  * 
  */
@@ -15,6 +17,7 @@ class ACTIONRPG_API ABattleCharacterController : public AThirdPersonController
 	GENERATED_BODY()
 	
 protected:
+	virtual void BeginPlay() override;
 	virtual void SetupInputComponent() override;
 
 	virtual void OnInputActionDodge();
@@ -28,4 +31,6 @@ protected:
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	FName DodgeEventName = "Dodge";
+
+	UDodgeBehavior* DodgeBehavior = nullptr;
 };

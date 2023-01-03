@@ -89,6 +89,10 @@ void AThirdPersonController::InitAnimInstance(APawn* aPawn)
 
     AnimEnterStateDelegateHandles = AnimInstance->OnEnterState().AddUObject(
         this, &AThirdPersonController::OnAnimationStateEnter);
+    AnimExitStateDelegateHandles = AnimInstance->OnEnterState().AddUObject(
+        this, &AThirdPersonController::OnAnimationStateExit);
+    AnimFullyBlendStateDelegateHandles = AnimInstance->OnEnterState().AddUObject(
+        this, &AThirdPersonController::OnAnimationStateFullyBlend);
 }
 
 void AThirdPersonController::OnInputAxisMoveForward(float AxisValue)
@@ -210,6 +214,8 @@ void AThirdPersonController::OnUnPossess()
     if (IsValid(AnimInstance))
     {
         AnimInstance->OnEnterState().Remove(AnimEnterStateDelegateHandles);
+        AnimInstance->OnExitState().Remove(AnimExitStateDelegateHandles);
+        AnimInstance->OnFullyBlendState().Remove(AnimFullyBlendStateDelegateHandles);
     }
 }
 
