@@ -37,6 +37,8 @@ public:
 	void UnlockInput(EInputLockFlag LockFlag);
 	bool IsInputLocked(EInputLockFlag LockFlag) const;
 
+	const FVector2D& GetInputAxis() const { return InputAxis; }
+
 protected:
 	virtual void SetupInputComponent() override;
 
@@ -106,4 +108,6 @@ private:
 	FDelegateHandle AnimEnterStateDelegateHandles;
 	FDelegateHandle AnimExitStateDelegateHandles;
 	FDelegateHandle AnimFullyBlendStateDelegateHandles;
+
+	FVector2D InputAxis;
 };

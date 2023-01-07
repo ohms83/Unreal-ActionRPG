@@ -5,6 +5,7 @@
 #include "Animation/AnimInstance.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Kismet/KismetMathLibrary.h"
 
 // Sets default values for this component's properties
 UDodgeBehavior::UDodgeBehavior()
@@ -45,14 +46,35 @@ void UDodgeBehavior::TickComponent(float DeltaTime, ELevelTick TickType, FActorC
 	// ...
 }
 
-bool UDodgeBehavior::Dodge()
+bool UDodgeBehavior::Dodge(const FVector& Direction)
 {
 	if (!CanDodge())
 	{
 		return false;
 	}
+
+	// Turn the actor toward the dodge direction
+	if (!Direction.IsZero())
+	{
+		auto TempOwner = GetOwner();
+		const auto Location = TempOwner->GetActorLocation();
+		const FRotator Rotator = UKismetMathLibrary::FindLookAtRotation(Location, Location + Direction);
+		TempOwner->SetActorRotation(Rotator);
+	}
+
 	// Play dodge montage;
-	float Seconds = AnimInstance->Montage_Play(DodgeMontage);
+	float Seconds = AnimInstance->Montage_Play(
+		DodgeMontage,
+		AnimPlayRate,
+		EMontagePlayReturnType::MontageLength,
+		MontageStartAt);
+
+	if (MontageStartAt >= Seconds) {
+		UE_LOG(LogTemp, Warning,
+			TEXT("MontageStartAt is greater or equal the length of animation montage itself. Is this intentional? %.2f:%.2f"),
+			MontageStartAt, Seconds);
+		return false;
+	}
 	return Seconds > 0;
 }
 

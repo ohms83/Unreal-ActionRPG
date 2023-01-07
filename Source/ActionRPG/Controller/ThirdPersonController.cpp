@@ -119,7 +119,9 @@ void AThirdPersonController::OnInputAxisMoveForward(float AxisValue)
     FRotator Rotator(0, GetControlRotation().Yaw, 0);
     FVector Direction = UKismetMathLibrary::GetForwardVector(Rotator);
 
-    if (IsValid(AnimInstance)) {
+    if (IsValid(AnimInstance))
+    {
+        InputAxis.Y = AxisValue;
         AnimInstance->InputAxis.Y = AxisValue;
     }
 
@@ -135,7 +137,9 @@ void AThirdPersonController::OnInputAxisMoveRight(float AxisValue)
     FRotator Rotator(0, GetControlRotation().Yaw, 0);
     FVector Direction = UKismetMathLibrary::GetRightVector(Rotator);
 
-    if (IsValid(AnimInstance)) {
+    if (IsValid(AnimInstance)) 
+    {
+        InputAxis.X = AxisValue;
         AnimInstance->InputAxis.X = AxisValue;
     }
 

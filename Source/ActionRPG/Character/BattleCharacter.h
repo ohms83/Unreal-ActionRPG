@@ -32,6 +32,6 @@ public:
 private:
 	FCharacterStats Stats;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Dodge", meta = (AllowPrivateAccess = "true"))
 	UDodgeBehavior* DodgeBehavior = nullptr;
 };

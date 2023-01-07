@@ -4,6 +4,7 @@
 #include "BattleCharacterController.h"
 #include "ActionRPG/Character/GameCharacterAnimInstance.h"
 #include "ActionRPG/Component/DodgeBehavior.h"
+#include "Kismet/KismetMathLibrary.h"
 
 void ABattleCharacterController::BeginPlay()
 {
@@ -40,7 +41,13 @@ void ABattleCharacterController::SetupInputComponent()
 
 void ABattleCharacterController::OnInputActionDodge()
 {
-    if (IsValid(DodgeBehavior) && DodgeBehavior->Dodge()) {
+    const FRotator Rotator(0, GetControlRotation().Yaw, 0);
+    const FVector2D& TempInputAxis = GetInputAxis();
+    const float AngleDeg = FMath::RadiansToDegrees(FMath::Atan2(TempInputAxis.X, TempInputAxis.Y));
+    const FVector Direction = TempInputAxis.IsZero() ? FVector::ZeroVector :
+        UKismetMathLibrary::RotateAngleAxis(Rotator.Vector(), AngleDeg, FVector::ZAxisVector);
+
+    if (IsValid(DodgeBehavior) && DodgeBehavior->Dodge(Direction)) {
         LockInput(EInputLockFlag::Movement);
     }
 

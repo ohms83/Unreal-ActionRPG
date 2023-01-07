@@ -25,15 +25,15 @@ protected:
 
 public:	
 	// Try executing dodge animation. Return true if succeeded.
-	UFUNCTION(BlueprintCallable, Category = "Character Behavior")
-	bool Dodge();
+	UFUNCTION(BlueprintCallable, Category = "Dodge Behavior")
+	bool Dodge(const FVector& Direction);
 
-	UFUNCTION(BlueprintCallable, Category = "Character Behavior")
+	UFUNCTION(BlueprintCallable, Category = "Dodge Behavior")
 	bool IsDodging() const;
-	UFUNCTION(BlueprintCallable, Category = "Character Behavior")
+	UFUNCTION(BlueprintCallable, Category = "Dodge Behavior")
 	bool CanDodge() const;
 
-	UFUNCTION(BlueprintCallable, Category = "Character Behavior")
+	UFUNCTION(BlueprintCallable, Category = "Dodge Behavior")
 	UAnimMontage* GetDodgeMontage() const { return DodgeMontage; }
 
 	// Called every frame
@@ -41,8 +41,12 @@ public:
 
 private:
 	// Dodge
-	UPROPERTY(EditDefaultsOnly, Category = "Montages", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditDefaultsOnly, meta = (AllowPrivateAccess = "true"))
 	UAnimMontage* DodgeMontage = nullptr;
+	UPROPERTY(EditDefaultsOnly, meta = (AllowPrivateAccess = "true"))
+	float AnimPlayRate = 1.0f;
+	UPROPERTY(EditDefaultsOnly, meta = (AllowPrivateAccess = "true"))
+	float MontageStartAt = 0.0f;
 
 private:
 	UAnimInstance* AnimInstance = nullptr;
