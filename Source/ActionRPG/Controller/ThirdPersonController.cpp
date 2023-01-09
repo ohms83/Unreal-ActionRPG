@@ -104,9 +104,9 @@ void AThirdPersonController::InitAnimInstance(APawn* aPawn)
 
     AnimEnterStateDelegateHandles = AnimInstance->OnEnterState().AddUObject(
         this, &AThirdPersonController::OnAnimationStateEnter);
-    AnimExitStateDelegateHandles = AnimInstance->OnEnterState().AddUObject(
+    AnimExitStateDelegateHandles = AnimInstance->OnExitState().AddUObject(
         this, &AThirdPersonController::OnAnimationStateExit);
-    AnimFullyBlendStateDelegateHandles = AnimInstance->OnEnterState().AddUObject(
+    AnimFullyBlendStateDelegateHandles = AnimInstance->OnFullyBlendState().AddUObject(
         this, &AThirdPersonController::OnAnimationStateFullyBlend);
 }
 
@@ -269,6 +269,9 @@ void AThirdPersonController::OnUnPossess()
 void AThirdPersonController::OnAnimationStateEnter(const FString& AnimStateName)
 {
     //UE_LOG(LogThirdPersonController, Log, TEXT("Enter Anim State=%s"), *AnimStateName);
+    if (AnimStateName.Equals(TEXT("idle"), ESearchCase::IgnoreCase)) {
+        UnlockInput(EInputLockFlag::Movement);
+    }
 }
 void AThirdPersonController::OnAnimationStateExit(const FString& AnimStateName)
 {
@@ -276,5 +279,8 @@ void AThirdPersonController::OnAnimationStateExit(const FString& AnimStateName)
 }
 void AThirdPersonController::OnAnimationStateFullyBlend(const FString& AnimStateName)
 {
-
+    //UE_LOG(LogThirdPersonController, Log, TEXT("Fully Blend Anim State=%s"), *AnimStateName);
+    if (AnimStateName.Equals(TEXT("jumpend"), ESearchCase::IgnoreCase)) {
+        LockInput(EInputLockFlag::Movement);
+    }
 }

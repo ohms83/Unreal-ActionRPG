@@ -36,11 +36,11 @@ public:
 	}
 	FStateEvent& OnExitState()
 	{
-		return StateEnterEvent;
+		return StateExitEvent;
 	}
 	FStateEvent& OnFullyBlendState()
 	{
-		return StateEnterEvent;
+		return StateFullyBlendEvent;
 	}
 
 protected:

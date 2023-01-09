@@ -62,9 +62,4 @@ void ABattleCharacterController::OnInputActionStopDodging()
 void ABattleCharacterController::OnAnimationStateEnter(const FString& AnimStateName)
 {
     Super::OnAnimationStateEnter(AnimStateName);
-
-    if (AnimStateName.Equals(TEXT("idle"), ESearchCase::IgnoreCase))
-    {
-        UnlockInput(EInputLockFlag::Movement);
-    }
 }
