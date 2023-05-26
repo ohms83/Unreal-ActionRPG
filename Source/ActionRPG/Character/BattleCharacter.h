@@ -5,8 +5,12 @@
 #include "CoreMinimal.h"
 #include "GameCharacter.h"
 #include "CharacterData.h"
+
+#include "ActionRPG/Battle/BattleData.h"
+
 #include "BattleCharacter.generated.h"
 
+class UAttackBehavior;
 class UDodgeBehavior;
 
 UCLASS()
@@ -17,6 +21,12 @@ class ACTIONRPG_API ABattleCharacter : public AGameCharacter
 public:
 	// Sets default values for this character's properties
 	ABattleCharacter();
+
+	// Try initiating the attack.
+	void TryAttack();
+	// TODO: A temporary variable just for testing
+	UPROPERTY(EditAnywhere)
+	FAttackData Attack;
 
 protected:
 	// Called when the game starts or when spawned
@@ -32,6 +42,8 @@ public:
 private:
 	FCharacterStats Stats;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Dodge", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gameplay Component", meta = (AllowPrivateAccess = "true"))
+	UAttackBehavior* AttackBehavior = nullptr;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gameplay Component", meta = (AllowPrivateAccess = "true"))
 	UDodgeBehavior* DodgeBehavior = nullptr;
 };

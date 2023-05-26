@@ -6,6 +6,7 @@
 #include "ThirdPersonController.h"
 #include "BattleCharacterController.generated.h"
 
+class UAttackBehavior;
 class UDodgeBehavior;
 
 /**
@@ -20,6 +21,8 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void SetupInputComponent() override;
 
+	virtual void OnInputActionAttack();
+
 	virtual void OnInputActionDodge();
 	virtual void OnInputActionStopDodging();
 
@@ -30,7 +33,10 @@ protected:
 
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	FName AttackEventName = "Attack";
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	FName DodgeEventName = "Dodge";
 
+	UAttackBehavior* AttackBehavior = nullptr;
 	UDodgeBehavior* DodgeBehavior = nullptr;
 };

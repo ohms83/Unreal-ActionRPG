@@ -2,6 +2,7 @@
 
 
 #include "BattleCharacter.h"
+#include "ActionRPG/Component/AttackBehavior.h"
 #include "ActionRPG/Component/DodgeBehavior.h"
 
 // Sets default values
@@ -10,6 +11,7 @@ ABattleCharacter::ABattleCharacter()
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
+	AttackBehavior = CreateDefaultSubobject<UAttackBehavior>(TEXT("Attack Behavior"));
 	DodgeBehavior = CreateDefaultSubobject<UDodgeBehavior>(TEXT("Dodge Behavior"));
 }
 
@@ -17,7 +19,6 @@ ABattleCharacter::ABattleCharacter()
 void ABattleCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	//AddInstanceComponent(DodgeBehavior);
 }
 
 // Called every frame
@@ -34,3 +35,14 @@ void ABattleCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 }
 
+void ABattleCharacter::TryAttack()
+{
+	if (IsValid(AttackBehavior))
+	{
+		AttackBehavior->RegisterAttack(Attack);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("AttackBehavior is invalid!"));
+	}
+}

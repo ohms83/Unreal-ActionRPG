@@ -2,7 +2,9 @@
 
 
 #include "BattleCharacterController.h"
+#include "ActionRPG/Character/BattleCharacter.h"
 #include "ActionRPG/Character/GameCharacterAnimInstance.h"
+#include "ActionRPG/Component/AttackBehavior.h"
 #include "ActionRPG/Component/DodgeBehavior.h"
 #include "Kismet/KismetMathLibrary.h"
 
@@ -13,6 +15,7 @@ void ABattleCharacterController::BeginPlay()
         return;
     }
 
+    AttackBehavior = Cast<UAttackBehavior>(aPawn->GetComponentByClass(UAttackBehavior::StaticClass()));
     DodgeBehavior = Cast<UDodgeBehavior>(aPawn->GetComponentByClass(UDodgeBehavior::StaticClass()));
 }
 
@@ -22,6 +25,14 @@ void ABattleCharacterController::SetupInputComponent()
 
     if (IsValid(InputComponent))
     {
+        InputComponent->BindAction
+        (
+            AttackEventName,
+            IE_Pressed,
+            this,
+            &ABattleCharacterController::OnInputActionAttack
+        );
+
         InputComponent->BindAction
         (
             DodgeEventName,
@@ -36,6 +47,19 @@ void ABattleCharacterController::SetupInputComponent()
             this,
             &ABattleCharacterController::OnInputActionStopDodging
         );
+    }
+}
+
+void ABattleCharacterController::OnInputActionAttack()
+{
+    ABattleCharacter* BattleCharacter = Cast<ABattleCharacter>(GetPawn());
+    if (IsValid(BattleCharacter))
+    {
+        BattleCharacter->TryAttack();
+    }
+    else
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Controlled pawn is not an ABattleCharacter type!"));
     }
 }
 

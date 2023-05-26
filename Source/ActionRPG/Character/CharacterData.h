@@ -11,19 +11,19 @@ struct FCharacterStats
 	GENERATED_BODY()
 
 	UPROPERTY()
-	uint32 HP = 0;
+	uint32 Hp = 0;
 	UPROPERTY()
-	uint32 MP = 0;
+	uint32 Mp = 0;
 	UPROPERTY()
 	uint32 MaxHP = 0;
 	UPROPERTY()
 	uint32 MaxMP = 0;
 	UPROPERTY()
-	uint32 ATK = 0;
+	uint32 Atk = 0;
 	UPROPERTY()
-	uint32 DEF = 0;
+	uint32 Def = 0;
 	UPROPERTY()
-	uint32 MATK = 0;
+	uint32 MAtk = 0;
 	UPROPERTY()
-	uint32 MDEF = 0;
+	uint32 MDef = 0;
 };
