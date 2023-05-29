@@ -2,8 +2,13 @@
 
 
 #include "BattleCharacter.h"
+
+#include "Kismet/KismetMathLibrary.h"
+#include "GameFramework/CharacterMovementComponent.h"
+
 #include "ActionRPG/Component/AttackBehavior.h"
 #include "ActionRPG/Component/DodgeBehavior.h"
+#include "ActionRPG/Character/GameCharacterAnimInstance.h"
 
 // Sets default values
 ABattleCharacter::ABattleCharacter()
@@ -19,30 +24,68 @@ ABattleCharacter::ABattleCharacter()
 void ABattleCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+	const auto TempMesh = GetMesh();
+	if (IsValid(TempMesh))
+	{
+		AnimInstance = Cast<UGameCharacterAnimInstance>(TempMesh->GetAnimInstance());
+	}
 }
 
 // Called every frame
 void ABattleCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
 }
 
 // Called to bind functionality to input
 void ABattleCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
-
 }
 
-void ABattleCharacter::TryAttack()
+void ABattleCharacter::OnAnimNotifyAttackStart()
+{
+	// TODO: Enable weapon's collision
+	if (IsValid(AttackBehavior))
+	{
+		AttackBehavior->OnAnimNotifyAttackStart();
+	}
+
+	if (IsValid(DodgeBehavior))
+	{
+		DodgeBehavior->LockComponent(this);
+	}
+}
+
+void ABattleCharacter::OnAnimNotifyAttackEnd()
+{
+	// TODO: Disable weapon's collision
+	if (IsValid(AttackBehavior))
+	{
+		AttackBehavior->OnAnimNotifyAttackEnd();
+	}
+
+	if (IsValid(DodgeBehavior))
+	{
+		DodgeBehavior->UnlockComponent(this);
+	}
+}
+
+void ABattleCharacter::ExecuteAttack()
 {
 	if (IsValid(AttackBehavior))
 	{
-		AttackBehavior->RegisterAttack(Attack);
+		AttackBehavior->RegisterCombo();
 	}
-	else
+}
+
+bool ABattleCharacter::ExecuteDodge(const FVector& Direction)
+{
+	if (IsValid(DodgeBehavior) && DodgeBehavior->Dodge(Direction))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("AttackBehavior is invalid!"));
+		AttackBehavior->CancleAttack();
+		return true;
 	}
+	return false;
 }

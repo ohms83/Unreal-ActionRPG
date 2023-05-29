@@ -12,6 +12,7 @@
 
 class UAttackBehavior;
 class UDodgeBehavior;
+class UGameCharacterAnimInstance;
 
 UCLASS()
 class ACTIONRPG_API ABattleCharacter : public AGameCharacter
@@ -21,12 +22,6 @@ class ACTIONRPG_API ABattleCharacter : public AGameCharacter
 public:
 	// Sets default values for this character's properties
 	ABattleCharacter();
-
-	// Try initiating the attack.
-	void TryAttack();
-	// TODO: A temporary variable just for testing
-	UPROPERTY(EditAnywhere)
-	FAttackData Attack;
 
 protected:
 	// Called when the game starts or when spawned
@@ -41,9 +36,22 @@ public:
 
 private:
 	FCharacterStats Stats;
+	TWeakObjectPtr<UGameCharacterAnimInstance> AnimInstance;
+	TWeakObjectPtr<UPawnMovementComponent> MovementComp;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gameplay Component", meta = (AllowPrivateAccess = "true"))
 	UAttackBehavior* AttackBehavior = nullptr;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gameplay Component", meta = (AllowPrivateAccess = "true"))
 	UDodgeBehavior* DodgeBehavior = nullptr;
+
+public: // Attack
+	void ExecuteAttack();
+
+	UFUNCTION(BlueprintCallable, Category = "Battle Character|Attack")
+	void OnAnimNotifyAttackStart();
+	UFUNCTION(BlueprintCallable, Category = "Battle Character|Attack")
+	void OnAnimNotifyAttackEnd();
+
+public:
+	bool ExecuteDodge(const FVector& Direction);
 };

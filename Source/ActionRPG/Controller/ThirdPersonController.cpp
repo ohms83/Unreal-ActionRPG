@@ -188,7 +188,7 @@ void AThirdPersonController::OnInputLookUpRate(float AxisValue)
 
 void AThirdPersonController::OnInputActionJump()
 {
-    if (IsInputLocked(EInputLockFlag::Movement)) {
+    if (IsInputLocked(EInputLockFlag::Action)) {
         return;
     }
 
@@ -270,7 +270,7 @@ void AThirdPersonController::OnAnimationStateEnter(const FString& AnimStateName)
 {
     //UE_LOG(LogThirdPersonController, Log, TEXT("Enter Anim State=%s"), *AnimStateName);
     if (AnimStateName.Equals(TEXT("idle"), ESearchCase::IgnoreCase)) {
-        UnlockInput(EInputLockFlag::Movement);
+        UnlockInput(EInputLockFlag::All);
     }
 }
 void AThirdPersonController::OnAnimationStateExit(const FString& AnimStateName)
@@ -281,6 +281,6 @@ void AThirdPersonController::OnAnimationStateFullyBlend(const FString& AnimState
 {
     //UE_LOG(LogThirdPersonController, Log, TEXT("Fully Blend Anim State=%s"), *AnimStateName);
     if (AnimStateName.Equals(TEXT("jumpend"), ESearchCase::IgnoreCase)) {
-        LockInput(EInputLockFlag::Movement);
+        LockInput(EInputLockFlag::All);
     }
 }

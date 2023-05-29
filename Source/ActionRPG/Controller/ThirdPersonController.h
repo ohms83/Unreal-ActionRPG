@@ -28,6 +28,7 @@ public:
 		None		= 0x00,
 		Camera		= 0x01,
 		Movement	= 0x02,
+		Action		= 0x04,
 		All			= 0xFF,
 	};
 

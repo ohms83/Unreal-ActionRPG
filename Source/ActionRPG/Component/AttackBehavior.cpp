@@ -2,7 +2,11 @@
 
 
 #include "AttackBehavior.h"
+
+#include "TimerManager.h"
 #include "GameFramework/Character.h"
+
+#include "ActionRPG/Character/GameCharacterAnimInstance.h"
 
 // Sets default values for this component's properties
 UAttackBehavior::UAttackBehavior()
@@ -27,7 +31,7 @@ void UAttackBehavior::BeginPlay()
 		const auto TempMesh = OwnerPawn->GetMesh();
 		if (IsValid(TempMesh))
 		{
-			AnimInstance = Cast<UAnimInstance>(TempMesh->GetAnimInstance());
+			AnimInstance = Cast<UGameCharacterAnimInstance>(TempMesh->GetAnimInstance());
 		}
 	}
 }
@@ -41,17 +45,21 @@ void UAttackBehavior::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 	// ...
 	if (PendingAttacks.Num() > 0 && bCanStartNextAttack)
 	{
-		PerformAttack(PendingAttacks[0]);
+		CurrentAttack = PendingAttacks[0];
+
+		if (CurrentAttack.IsValid()) {
+			PerformAttack(*CurrentAttack.Get());
+		}
+
 		PendingAttacks.RemoveAt(0);
 	}
 
-	if (CurrentAttackMontage.IsValid())
+	if (CurrentAttack.IsValid())
 	{
-		UAnimMontage* AttackMontage = CurrentAttackMontage.Get();
+		const UAnimMontage* AttackMontage = CurrentAttack->AttackMontage;
 		if (!AnimInstance->Montage_IsPlaying(AttackMontage))
 		{
-			CurrentAttackMontage.Reset();
-			bCanStartNextAttack = true;
+			ResetParameters();
 		}
 	}
 	else
@@ -60,29 +68,85 @@ void UAttackBehavior::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 	}
 }
 
-bool UAttackBehavior::RegisterAttack(const FAttackData& NextAttack)
+bool UAttackBehavior::RegisterCombo()
 {
-	if (!bCanStartNextAttack) {
+	if (!ComboList.IsValidIndex(ComboIndex) || !bIsWithinComboWindow) {
 		return false;
 	}
+
+	const FAttackData& Attack = ComboList[ComboIndex];
+	if (RegisterAttack(Attack))
+	{
+		if (++ComboIndex >= ComboList.Num())
+		{
+			bIsWithinComboWindow = false;
+			ComboTimerHandle.Invalidate();
+		}
+		else
+		{
+			StartComboCountdown();
+		}
+
+		return true;
+	}
+	
+	return false;
+}
+
+void UAttackBehavior::StartComboCountdown()
+{
+	FTimerManager& TimerManager = GetWorld()->GetTimerManager();
+
+	TimerManager.SetTimer(
+		ComboTimerHandle,
+		this,
+		&UAttackBehavior::OnComboCountdownEnded,
+		ComboWindow,
+		false
+	);
+
+	bIsWithinComboWindow = true;
+}
+
+void UAttackBehavior::OnComboCountdownEnded()
+{
+	// Disable combo attack until the current attack animation is finished.
+	ComboIndex = ComboList.Num();
+	bIsWithinComboWindow = false;
+}
+
+void UAttackBehavior::ResetParameters()
+{
+	CurrentAttack.Reset();
+	ComboIndex = 0;
+	ComboTimerHandle.Invalidate();
+	bIsWithinComboWindow = true;
+	bCanStartNextAttack = true;
+}
+
+bool UAttackBehavior::RegisterAttack(const FAttackData& Attack)
+{
+	if (IsLocked())
+	{
+		return false;
+	}
+	TSharedPtr<FAttackData> NextAttack = MakeShared<FAttackData>(Attack);
 	PendingAttacks.Emplace(NextAttack);
 	return true;
 }
 
 void UAttackBehavior::CancleAttack()
 {
-	if (!IsAttacking()) {
-		return;
+	// TODO: Stop playing montage
+	if (CurrentAttack.IsValid()) {
+		AnimInstance->Montage_Stop(0.1f, CurrentAttack->AttackMontage);
 	}
-
-	bCanStartNextAttack = true;
+	ResetParameters();
 }
 
 bool UAttackBehavior::PerformAttack(const FAttackData& NextAttack)
 {
-	CurrentAttackMontage = NextAttack.AttackMontage;
-	UAnimMontage* AttackMontage = CurrentAttackMontage.Get();
-	if (!IsValid(AttackMontage))
+	if (!IsValid(NextAttack.AttackMontage))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Invalid AttackMontage!"));
 		return false;
@@ -90,7 +154,7 @@ bool UAttackBehavior::PerformAttack(const FAttackData& NextAttack)
 
 	// Play attack montage
 	float Seconds = AnimInstance->Montage_Play(
-		AttackMontage,
+		NextAttack.AttackMontage,
 		NextAttack.AnimPlayRate,
 		EMontagePlayReturnType::MontageLength,
 		0);
@@ -100,11 +164,28 @@ bool UAttackBehavior::PerformAttack(const FAttackData& NextAttack)
 
 void UAttackBehavior::OnAnimNotifyAttackStart()
 {
-	// TODO: Enable weapon's collision
 }
 
 void UAttackBehavior::OnAnimNotifyAttackEnd()
 {
-	// TODO: Disable weapon's collision
 	bCanStartNextAttack = true;
+	UE_LOG(LogTemp, Log, TEXT("UAttackBehavior::OnAnimNotifyAttackEnd()"));
+}
+
+bool UAttackBehavior::LockComponent(const UObject* Locker)
+{
+	if (ComponentLocker.IsValid() && ComponentLocker != Locker)
+	{
+		return false;
+	}
+	ComponentLocker = Locker;
+	return true;
+}
+
+void UAttackBehavior::UnlockComponent(const UObject* Locker)
+{
+	if (ComponentLocker.IsValid() && ComponentLocker == Locker)
+	{
+		ComponentLocker.Reset();
+	}
 }

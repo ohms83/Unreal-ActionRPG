@@ -11,7 +11,7 @@ struct FAttackData
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TWeakObjectPtr<UAnimMontage> AttackMontage;
+	UAnimMontage* AttackMontage;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float AnimPlayRate = 1.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)

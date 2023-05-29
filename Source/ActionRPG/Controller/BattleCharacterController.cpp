@@ -52,10 +52,14 @@ void ABattleCharacterController::SetupInputComponent()
 
 void ABattleCharacterController::OnInputActionAttack()
 {
+    if (IsInputLocked(EInputLockFlag::Action)) {
+        return;
+    }
+
     ABattleCharacter* BattleCharacter = Cast<ABattleCharacter>(GetPawn());
     if (IsValid(BattleCharacter))
     {
-        BattleCharacter->TryAttack();
+        BattleCharacter->ExecuteAttack();
     }
     else
     {
@@ -65,14 +69,22 @@ void ABattleCharacterController::OnInputActionAttack()
 
 void ABattleCharacterController::OnInputActionDodge()
 {
+    if (IsInputLocked(EInputLockFlag::Action) || IsInputLocked(EInputLockFlag::Movement)) {
+        return;
+    }
+
     const FRotator Rotator(0, GetControlRotation().Yaw, 0);
     const FVector2D& TempInputAxis = GetInputAxis();
     const float AngleDeg = FMath::RadiansToDegrees(FMath::Atan2(TempInputAxis.X, TempInputAxis.Y));
     const FVector Direction = TempInputAxis.IsZero() ? FVector::ZeroVector :
         UKismetMathLibrary::RotateAngleAxis(Rotator.Vector(), AngleDeg, FVector::ZAxisVector);
 
-    if (IsValid(DodgeBehavior) && DodgeBehavior->Dodge(Direction)) {
+
+    ABattleCharacter* BattleCharacter = Cast<ABattleCharacter>(GetPawn());
+    if (IsValid(BattleCharacter) && BattleCharacter->ExecuteDodge(Direction))
+    {
         LockInput(EInputLockFlag::Movement);
+        LockInput(EInputLockFlag::Action);
     }
 
     InputActionDodge_Bluerprint();

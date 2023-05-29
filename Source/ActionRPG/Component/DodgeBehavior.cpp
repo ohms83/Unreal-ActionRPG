@@ -37,7 +37,6 @@ void UDodgeBehavior::BeginPlay()
 	}
 }
 
-
 // Called every frame
 void UDodgeBehavior::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
@@ -91,6 +90,23 @@ bool UDodgeBehavior::CanDodge() const
 {
 	const bool bIsDodging = IsDodging();
 	const bool bIsFalling = !IsValid(MovementComp) || MovementComp->IsFalling();
-	return !bIsDodging && !bIsFalling;
+	return !IsLocked() && !bIsDodging && !bIsFalling;
 }
 
+bool UDodgeBehavior::LockComponent(const UObject* Locker)
+{
+	if (ComponentLocker.IsValid() && ComponentLocker != Locker)
+	{
+		return false;
+	}
+	ComponentLocker = Locker;
+	return true;
+}
+
+void UDodgeBehavior::UnlockComponent(const UObject* Locker)
+{
+	if (ComponentLocker.IsValid() && ComponentLocker == Locker)
+	{
+		ComponentLocker.Reset();
+	}
+}
