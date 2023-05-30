@@ -22,27 +22,12 @@ UDodgeBehavior::UDodgeBehavior()
 void UDodgeBehavior::BeginPlay()
 {
 	Super::BeginPlay();
-
-	// ...
-	const auto OwnerPawn = Cast<ACharacter>(GetOwner());
-	if (IsValid(OwnerPawn))
-	{
-		MovementComp = Cast<UPawnMovementComponent>(OwnerPawn->GetComponentByClass(UPawnMovementComponent::StaticClass()));
-
-		const auto TempMesh = OwnerPawn->GetMesh();
-		if (IsValid(TempMesh))
-		{
-			AnimInstance = Cast<UAnimInstance>(TempMesh->GetAnimInstance());
-		}
-	}
 }
 
 // Called every frame
 void UDodgeBehavior::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-	// ...
 }
 
 bool UDodgeBehavior::Dodge(const FVector& Direction)
@@ -62,24 +47,30 @@ bool UDodgeBehavior::Dodge(const FVector& Direction)
 	}
 
 	// Play dodge montage;
-	float Seconds = AnimInstance->Montage_Play(
-		DodgeMontage,
-		AnimPlayRate,
-		EMontagePlayReturnType::MontageLength,
-		MontageStartAt);
+	auto AnimInstance = GetAnimInstance();
+	if (AnimInstance.IsValid())
+	{
+		float Seconds = AnimInstance->Montage_Play(
+			DodgeMontage,
+			AnimPlayRate,
+			EMontagePlayReturnType::MontageLength,
+			MontageStartAt);
 
-	if (MontageStartAt >= Seconds) {
-		UE_LOG(LogTemp, Warning,
-			TEXT("MontageStartAt is greater or equal the length of animation montage itself. Is this intentional? %.2f:%.2f"),
-			MontageStartAt, Seconds);
-		return false;
+		if (MontageStartAt >= Seconds) {
+			UE_LOG(LogTemp, Warning,
+				TEXT("MontageStartAt is greater or equal the length of animation montage itself. Is this intentional? %.2f:%.2f"),
+				MontageStartAt, Seconds);
+			return false;
+		}
+		return Seconds > 0;
 	}
-	return Seconds > 0;
+	return false;
 }
 
 bool UDodgeBehavior::IsDodging() const
 {
-	if (!IsValid(DodgeMontage) || !IsValid(AnimInstance)) {
+	auto AnimInstance = GetAnimInstance();
+	if (!IsValid(DodgeMontage) || !AnimInstance.IsValid()) {
 		return false;
 	}
 
@@ -88,25 +79,8 @@ bool UDodgeBehavior::IsDodging() const
 
 bool UDodgeBehavior::CanDodge() const
 {
+	auto MovementComp = GetMovementComponent();
 	const bool bIsDodging = IsDodging();
-	const bool bIsFalling = !IsValid(MovementComp) || MovementComp->IsFalling();
+	const bool bIsFalling = !MovementComp.IsValid() || MovementComp->IsFalling();
 	return !IsLocked() && !bIsDodging && !bIsFalling;
-}
-
-bool UDodgeBehavior::LockComponent(const UObject* Locker)
-{
-	if (ComponentLocker.IsValid() && ComponentLocker != Locker)
-	{
-		return false;
-	}
-	ComponentLocker = Locker;
-	return true;
-}
-
-void UDodgeBehavior::UnlockComponent(const UObject* Locker)
-{
-	if (ComponentLocker.IsValid() && ComponentLocker == Locker)
-	{
-		ComponentLocker.Reset();
-	}
 }

@@ -3,9 +3,6 @@
 
 #include "BattleCharacter.h"
 
-#include "Kismet/KismetMathLibrary.h"
-#include "GameFramework/CharacterMovementComponent.h"
-
 #include "ActionRPG/Component/AttackBehavior.h"
 #include "ActionRPG/Component/DodgeBehavior.h"
 #include "ActionRPG/Character/GameCharacterAnimInstance.h"
@@ -24,12 +21,6 @@ ABattleCharacter::ABattleCharacter()
 void ABattleCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-
-	const auto TempMesh = GetMesh();
-	if (IsValid(TempMesh))
-	{
-		AnimInstance = Cast<UGameCharacterAnimInstance>(TempMesh->GetAnimInstance());
-	}
 }
 
 // Called every frame
@@ -42,6 +33,18 @@ void ABattleCharacter::Tick(float DeltaTime)
 void ABattleCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
+}
+
+void ABattleCharacter::OnJumped_Implementation()
+{
+	Super::OnJumped_Implementation();
+	UE_LOG(LogTemp, Log, TEXT("OnJumped_Implementation"));
+
+	if (GetCharacterMovement()->CanAttemptJump() && AnimInstance.IsValid())
+	{
+		AttackBehavior->CancleAttack();
+		AnimInstance->StopAllMontages(0.1f);
+	}
 }
 
 void ABattleCharacter::OnAnimNotifyAttackStart()

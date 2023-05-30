@@ -4,9 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "GameFramework/CharacterMovementComponent.h"
+
 #include "GameCharacter.generated.h"
 
 class UGameCharacterAnimInstance;
+class UCharacterMovementComponent;
 
 UCLASS()
 class ACTIONRPG_API AGameCharacter : public ACharacter
@@ -32,6 +35,6 @@ private:
 	// Called every frame. Anything relating to updating animation state should be implemented here.
 	virtual void UpdateAnimationProperties();
 
-private:
-	UGameCharacterAnimInstance* AnimInstance = nullptr;
+protected:
+	TWeakObjectPtr<UGameCharacterAnimInstance> AnimInstance;
 };

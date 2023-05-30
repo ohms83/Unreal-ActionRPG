@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Components/ActorComponent.h"
+#include "GameActorComponent.h"
 #include "ActionRPG/Battle/BattleData.h"
 
 #include "AttackBehavior.generated.h"
@@ -11,7 +11,7 @@
 class UGameCharacterAnimInstance;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
-class ACTIONRPG_API UAttackBehavior : public UActorComponent
+class ACTIONRPG_API UAttackBehavior : public UGameActorComponent
 {
 	GENERATED_BODY()
 
@@ -42,25 +42,6 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void OnAnimNotifyAttackEnd();
 
-	/**
-	* Lock this component from executing any commands. If the component is already locked by
-	* the other object, the function return false.
-	* @param Locker A pointer to the object that's calling this function.
-	*/
-	UFUNCTION(BlueprintCallable, Category = "Dodge Behavior")
-	bool LockComponent(const UObject* Locker);
-
-	/**
-	* Unlock this component from executing any commands. If the component wasn't locked by
-	* the given Locker, the function silently returns.
-	* @param Locker A pointer to the object that's calling this function.
-	*/
-	UFUNCTION(BlueprintCallable, Category = "Dodge Behavior")
-	void UnlockComponent(const UObject* Locker);
-
-	UFUNCTION(BlueprintCallable, Category = "Dodge Behavior")
-	bool IsLocked() const { return ComponentLocker.IsValid(); }
-
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
@@ -90,9 +71,4 @@ private:
 	TSharedPtr<FAttackData> CurrentAttack;
 	TArray<TSharedPtr<FAttackData>> PendingAttacks;
 	bool bCanStartNextAttack = true;
-
-	// An object that acquire a lock to this component.
-	TWeakObjectPtr<const UObject> ComponentLocker;
-
-	TWeakObjectPtr<UGameCharacterAnimInstance> AnimInstance;
 };

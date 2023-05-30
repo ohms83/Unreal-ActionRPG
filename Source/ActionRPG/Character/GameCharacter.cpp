@@ -4,8 +4,6 @@
 #include "GameCharacter.h"
 #include "GameCharacterAnimInstance.h"
 
-#include "GameFramework/CharacterMovementComponent.h"
-
 // Sets default values
 AGameCharacter::AGameCharacter()
 {
@@ -23,9 +21,6 @@ void AGameCharacter::BeginPlay()
 	if (IsValid(TempMesh))
 	{
 		AnimInstance = Cast<UGameCharacterAnimInstance>(TempMesh->GetAnimInstance());
-		if (!IsValid(AnimInstance)) {
-			// TODO: Error logs
-		}
 	}
 }
 
@@ -46,13 +41,10 @@ void AGameCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 
 void AGameCharacter::UpdateAnimationProperties()
 {
-	if (IsValid(AnimInstance))
+	const auto MovementComp = GetCharacterMovement();
+	if (AnimInstance.IsValid())
 	{
-		const auto TempMoveComp = GetMovementComponent();
-		if (IsValid(TempMoveComp))
-		{
-			AnimInstance->MoveSpeed = TempMoveComp->Velocity.Size();
-			AnimInstance->bIsFalling = TempMoveComp->IsFalling();
-		}
+		AnimInstance->MoveSpeed = MovementComp->Velocity.Size();
+		AnimInstance->bIsFalling = MovementComp->IsFalling();
 	}
 }

@@ -12,7 +12,6 @@
 
 class UAttackBehavior;
 class UDodgeBehavior;
-class UGameCharacterAnimInstance;
 
 UCLASS()
 class ACTIONRPG_API ABattleCharacter : public AGameCharacter
@@ -33,11 +32,11 @@ public:
 
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	
+	virtual void OnJumped_Implementation() override;
 
 private:
 	FCharacterStats Stats;
-	TWeakObjectPtr<UGameCharacterAnimInstance> AnimInstance;
-	TWeakObjectPtr<UPawnMovementComponent> MovementComp;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gameplay Component", meta = (AllowPrivateAccess = "true"))
 	UAttackBehavior* AttackBehavior = nullptr;
@@ -52,6 +51,6 @@ public: // Attack
 	UFUNCTION(BlueprintCallable, Category = "Battle Character|Attack")
 	void OnAnimNotifyAttackEnd();
 
-public:
+public: // Dodge
 	bool ExecuteDodge(const FVector& Direction);
 };

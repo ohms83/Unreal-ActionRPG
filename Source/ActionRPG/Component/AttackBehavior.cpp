@@ -25,15 +25,6 @@ void UAttackBehavior::BeginPlay()
 	Super::BeginPlay();
 
 	// ...
-	const auto OwnerPawn = Cast<ACharacter>(GetOwner());
-	if (IsValid(OwnerPawn))
-	{
-		const auto TempMesh = OwnerPawn->GetMesh();
-		if (IsValid(TempMesh))
-		{
-			AnimInstance = Cast<UGameCharacterAnimInstance>(TempMesh->GetAnimInstance());
-		}
-	}
 }
 
 
@@ -57,7 +48,8 @@ void UAttackBehavior::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 	if (CurrentAttack.IsValid())
 	{
 		const UAnimMontage* AttackMontage = CurrentAttack->AttackMontage;
-		if (!AnimInstance->Montage_IsPlaying(AttackMontage))
+		auto AnimInstance = GetAnimInstance();
+		if (AnimInstance.IsValid() && !AnimInstance->Montage_IsPlaying(AttackMontage))
 		{
 			ResetParameters();
 		}
@@ -66,6 +58,12 @@ void UAttackBehavior::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 	{
 		bCanStartNextAttack = true;
 	}
+
+	//auto MovementComp = GetMovementComponent();
+	//if (MovementComp.IsValid() && MovementComp->IsFalling())
+	//{
+	//	CancleAttack();
+	//}
 }
 
 bool UAttackBehavior::RegisterCombo()
@@ -130,6 +128,13 @@ bool UAttackBehavior::RegisterAttack(const FAttackData& Attack)
 	{
 		return false;
 	}
+
+	//auto MovementComp = GetMovementComponent();
+	//if (MovementComp.IsValid() && MovementComp->IsFalling())
+	//{
+	//	return false;
+	//}
+
 	TSharedPtr<FAttackData> NextAttack = MakeShared<FAttackData>(Attack);
 	PendingAttacks.Emplace(NextAttack);
 	return true;
@@ -138,7 +143,8 @@ bool UAttackBehavior::RegisterAttack(const FAttackData& Attack)
 void UAttackBehavior::CancleAttack()
 {
 	// TODO: Stop playing montage
-	if (CurrentAttack.IsValid()) {
+	auto AnimInstance = GetAnimInstance();
+	if (CurrentAttack.IsValid() && AnimInstance.IsValid()) {
 		AnimInstance->Montage_Stop(0.1f, CurrentAttack->AttackMontage);
 	}
 	ResetParameters();
@@ -153,39 +159,32 @@ bool UAttackBehavior::PerformAttack(const FAttackData& NextAttack)
 	}
 
 	// Play attack montage
-	float Seconds = AnimInstance->Montage_Play(
+	auto AnimInstance = GetAnimInstance();
+	bool bIsMontagePlayed = AnimInstance->Montage_Play(
 		NextAttack.AttackMontage,
 		NextAttack.AnimPlayRate,
 		EMontagePlayReturnType::MontageLength,
-		0);
-	bCanStartNextAttack = false;
-	return Seconds > 0;
+		0) > 0;
+
+	if (bIsMontagePlayed)
+	{
+		bCanStartNextAttack = false;
+		GetMovementComponent()->SetJumpAllowed(false);
+	}
+
+	return bIsMontagePlayed;
 }
 
 void UAttackBehavior::OnAnimNotifyAttackStart()
 {
+	UE_LOG(LogTemp, Log, TEXT("%s can jump %s"),
+		*GetOwner()->GetName(),
+		GetMovementComponent()->CanAttemptJump() ? TEXT("TRUE") : TEXT("FALSE"));
 }
 
 void UAttackBehavior::OnAnimNotifyAttackEnd()
 {
 	bCanStartNextAttack = true;
+	GetMovementComponent()->SetJumpAllowed(true);
 	UE_LOG(LogTemp, Log, TEXT("UAttackBehavior::OnAnimNotifyAttackEnd()"));
-}
-
-bool UAttackBehavior::LockComponent(const UObject* Locker)
-{
-	if (ComponentLocker.IsValid() && ComponentLocker != Locker)
-	{
-		return false;
-	}
-	ComponentLocker = Locker;
-	return true;
-}
-
-void UAttackBehavior::UnlockComponent(const UObject* Locker)
-{
-	if (ComponentLocker.IsValid() && ComponentLocker == Locker)
-	{
-		ComponentLocker.Reset();
-	}
 }
