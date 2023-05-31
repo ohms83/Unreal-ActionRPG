@@ -5,6 +5,8 @@
 #include "GameFramework/Character.h"
 #include "Kismet/KismetSystemLibrary.h"
 
+#include "NiagaraSystem.h"
+
 // Sets default values
 AEquipment::AEquipment()
 {
@@ -119,4 +121,9 @@ void AWeapon::GetBoxTransform(FVector& OutLocation, FRotator& OutOrientation)
 	const FTransform& Transform = GetTransform();
 	OutLocation = Transform.TransformPosition((BoxCollision.Offset));
 	OutOrientation = Transform.Rotator() + BoxCollision.Orientation;
+}
+
+const FHitVFX& AWeapon::GetHitVFX() const
+{
+	return HitVFX;
 }

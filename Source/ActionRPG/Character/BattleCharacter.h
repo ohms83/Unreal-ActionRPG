@@ -57,6 +57,8 @@ public: // Attack
 	UFUNCTION(BlueprintCallable, Category = "Battle Character|Attack")
 	void OnAnimNotifyAttackEnd();
 
+	void OnWeaponHit(class AWeapon* Weapon, const TArray<FHitResult>& HitResults);
+
 public: // Dodge
 	bool ExecuteDodge(const FVector& Direction);
 
@@ -64,7 +66,9 @@ public: // Damage
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser);
 
 protected: // Damage
-	void PlayDamageMontage(struct FDamageEvent const& DamageEvent);
+	void PlayDamageMontage(struct FDamageEvent const& DamageEvent, AActor* DamageCauser);
+	void PlayHitFX(struct FDamageEvent const& DamageEvent, AActor* DamageCauser);
+	void OnInvincibleFrameEnd();
 
 private: // Damage
 	UPROPERTY(EditDefaultsOnly, Category = "Battle Character|Damage", meta = (AllowPrivateAccess = "true"))
@@ -75,12 +79,25 @@ private: // Damage
 	TArray<UAnimMontage*> LeftDamageMontages;
 	UPROPERTY(EditDefaultsOnly, Category = "Battle Character|Damage", meta = (AllowPrivateAccess = "true"))
 	TArray<UAnimMontage*> RightDamageMontages;
+	UPROPERTY(EditDefaultsOnly, Category = "Battle Character|Damage", meta = (AllowPrivateAccess = "true"))
+	float InvincibleFrame = 0.3f;
+
+	FTimerHandle InvincibleFrameHandle;
+	bool bCanTkeDamage = true;
 
 public: // Equipment
 	UFUNCTION(BlueprintCallable, Category = "Battle Character|Equipment")
 	void Equip(AEquipment* Equipment, bool bUpdateStats = true);
+	/**
+	* Unequip the specified equipment. If the character isn't equipping that equipment
+	* the function will silently return.
+	* @param Equipment Equipment to be unequipped.
+	* @param bDestroy Whether the unequipped weapon should also be destroy from the world.
+	* @param bUpdateStats Whether the character's stats should also be updated. This is mainly
+	*		 useful for removing batches of equipment and then manually calling UpdateStats at the end.
+	*/
 	UFUNCTION(BlueprintCallable, Category = "Battle Character|Equipment")
-	void Unequip(AEquipment* Equipment, bool bUpdateStats = true);
+	void Unequip(AEquipment* Equipment, bool bDestroy = true, bool bUpdateStats = true);
 
 protected: // Equipment
 	UPROPERTY()
@@ -88,4 +105,6 @@ protected: // Equipment
 
 	UPROPERTY(EditDefaultsOnly, Category = "Battle Character|Equipment")
 	TMap<EEquipmentType, FName> EquipSockets;
+
+	FDelegateHandle WeaponHitDelegate;
 };

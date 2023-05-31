@@ -7,6 +7,9 @@
 #include "ActionRPG/Component/DodgeBehavior.h"
 #include "ActionRPG/Character/GameCharacterAnimInstance.h"
 
+#include "NiagaraSystem.h"
+#include "NiagaraFunctionLibrary.h"
+
 // Sets default values
 ABattleCharacter::ABattleCharacter()
 {
@@ -76,6 +79,7 @@ void ABattleCharacter::OnAnimNotifyAttackStart()
 		if (IsValid(Weapon))
 		{
 			Weapon->EnableTraceHit(true);
+			WeaponHitDelegate = Weapon->OnTraceHit.AddUObject(this, &ABattleCharacter::OnWeaponHit);
 		}
 	}
 }
@@ -100,6 +104,25 @@ void ABattleCharacter::OnAnimNotifyAttackEnd()
 		if (IsValid(Weapon))
 		{
 			Weapon->EnableTraceHit(false);
+			Weapon->OnTraceHit.Remove(WeaponHitDelegate);
+		}
+	}
+}
+
+void ABattleCharacter::OnWeaponHit(AWeapon* Weapon, const TArray<FHitResult>& HitResults)
+{
+	for (const FHitResult& HitResult : HitResults)
+	{
+		if (HitResult.Actor == this) {
+			continue;
+		}
+
+		ABattleCharacter* BattleCharacter = Cast<ABattleCharacter>(HitResult.Actor);
+		if (BattleCharacter)
+		{
+			FPointDamageEvent DamageEvent;
+			DamageEvent.HitInfo = HitResult;
+			BattleCharacter->TakeDamage(10, DamageEvent, GetController(), Weapon);
 		}
 	}
 }
@@ -124,24 +147,73 @@ bool ABattleCharacter::ExecuteDodge(const FVector& Direction)
 
 float ABattleCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
+	if (!bCanTkeDamage) {
+		return 0;
+	}
+
 	float RealDamageAmount = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 	if (RealDamageAmount <= 0) {
 		return 0;
 	}
 
-	PlayDamageMontage(DamageEvent);
+	PlayDamageMontage(DamageEvent, DamageCauser);
+	PlayHitFX(DamageEvent, DamageCauser);
+
+	bCanTkeDamage = false;
+	GetWorld()->GetTimerManager().SetTimer(
+		InvincibleFrameHandle,
+		this,
+		&ABattleCharacter::OnInvincibleFrameEnd,
+		InvincibleFrame,
+		false
+	);
+
 	return RealDamageAmount;
 }
 
-void ABattleCharacter::PlayDamageMontage(FDamageEvent const& DamageEvent)
+void ABattleCharacter::PlayDamageMontage(FDamageEvent const& DamageEvent, AActor* DamageCauser)
 {
 	if (FrontalDamageMontages.Num() <= 0) {
 		return;
 	}
 
+	AnimInstance->Montage_Stop(0.1f, nullptr);
+
 	int32 Index = FMath::RandRange(0, (int32)FrontalDamageMontages.Num() - 1);
 	UAnimMontage* DamageMontage = FrontalDamageMontages[Index];
 	AnimInstance->Montage_Play(DamageMontage, 1.0f);
+}
+
+void ABattleCharacter::PlayHitFX(FDamageEvent const& DamageEvent, AActor* DamageCauser)
+{
+	if (DamageEvent.IsOfType(FPointDamageEvent::ClassID))
+	{
+		const auto& PointDamage = static_cast<const FPointDamageEvent&>(DamageEvent);
+		AWeapon* HitWeapon = Cast<AWeapon>(DamageCauser);
+
+		if (IsValid(HitWeapon))
+		{
+			const FHitVFX& HitVFX = HitWeapon->GetHitVFX();
+			const FHitResult& HitInfo = PointDamage.HitInfo;
+			FRotator Orientation = (HitInfo.TraceEnd - HitInfo.TraceStart).Rotation();
+			//FRotator Orientation = HitInfo.Normal.Rotation();
+			UNiagaraSystem* VFX = const_cast<UNiagaraSystem*>(HitVFX.ParticleTemplate);
+
+			UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+				this,
+				VFX,
+				PointDamage.HitInfo.Location,
+				//Orientation + HitVFX.Orientation,
+				HitVFX.Orientation,
+				HitVFX.Scale
+			);
+		}
+	}
+}
+
+void ABattleCharacter::OnInvincibleFrameEnd()
+{
+	bCanTkeDamage = true;
 }
 
 void ABattleCharacter::Equip(AEquipment* Equipment, bool bUpdateStats)
@@ -158,25 +230,19 @@ void ABattleCharacter::Equip(AEquipment* Equipment, bool bUpdateStats)
 		Unequip(CurrentEquipment, false);
 	}
 
-	FAttachmentTransformRules TransformRules = {
-		// InLocationRule
-		EAttachmentRule::KeepRelative,
-		// InRotationRule
-		EAttachmentRule::KeepRelative,
-		// InScaleRule
-		EAttachmentRule::KeepRelative,
-		// bWeldSimulatedBodies
-		false
-	};
-
 	const FName* SocketName = EquipSockets.Find(EquipType);
 	if (SocketName) {
-		Equipment->AttachToComponent(GetMesh(), TransformRules, *SocketName);
+		Equipment->AttachToComponent(
+			GetMesh(),
+			FAttachmentTransformRules::SnapToTargetNotIncludingScale,
+			*SocketName
+		);
 	}
 	else {
 		UE_LOG(LogTemp, Warning, TEXT("Invalid equipment socket of type=%d"), (int32)EquipType);
 	}
 
+	Equipment->SetOwner(this);
 	EquipmentList.Add(EquipType, Equipment);
 
 	if (bUpdateStats) {
@@ -184,7 +250,7 @@ void ABattleCharacter::Equip(AEquipment* Equipment, bool bUpdateStats)
 	}
 }
 
-void ABattleCharacter::Unequip(AEquipment* Equipment, bool bUpdateStats)
+void ABattleCharacter::Unequip(AEquipment* Equipment, bool bDestroy, bool bUpdateStats)
 {
 	if (!IsValid(Equipment) || Equipment->GetEquipType() == EEquipmentType::None)
 	{
@@ -194,14 +260,22 @@ void ABattleCharacter::Unequip(AEquipment* Equipment, bool bUpdateStats)
 
 	const EEquipmentType EquipType = Equipment->GetEquipType();
 	AEquipment* CurrentEquipment = EquipmentList.FindOrAdd(EquipType);
-	if (IsValid(CurrentEquipment) && CurrentEquipment == Equipment) {
+	if (IsValid(CurrentEquipment) && CurrentEquipment == Equipment)
+	{
+		Equipment->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 		EquipmentList.Remove(EquipType);
 	}
-	else {
+	else
+	{
 		UE_LOG(LogTemp, Warning, TEXT("Cannot unequip an invalid equipment!"));
 	}
 
 	if (bUpdateStats) {
 		UpdateStats();
+	}
+
+	Equipment->SetOwner(nullptr);
+	if (bDestroy) {
+		Equipment->Destroy();
 	}
 }

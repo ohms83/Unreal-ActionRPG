@@ -177,14 +177,10 @@ bool UAttackBehavior::PerformAttack(const FAttackData& NextAttack)
 
 void UAttackBehavior::OnAnimNotifyAttackStart()
 {
-	UE_LOG(LogTemp, Log, TEXT("%s can jump %s"),
-		*GetOwner()->GetName(),
-		GetMovementComponent()->CanAttemptJump() ? TEXT("TRUE") : TEXT("FALSE"));
 }
 
 void UAttackBehavior::OnAnimNotifyAttackEnd()
 {
 	bCanStartNextAttack = true;
 	GetMovementComponent()->SetJumpAllowed(true);
-	UE_LOG(LogTemp, Log, TEXT("UAttackBehavior::OnAnimNotifyAttackEnd()"));
 }

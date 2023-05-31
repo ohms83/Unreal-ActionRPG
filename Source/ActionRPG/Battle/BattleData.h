@@ -16,4 +16,6 @@ struct FAttackData
 	float AnimPlayRate = 1.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float DamageModifier = 1.0f;
+	UPROPERTY(EditAnywhere)
+	FRotator VFXOrientation;
 };

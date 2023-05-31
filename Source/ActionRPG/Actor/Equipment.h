@@ -72,6 +72,21 @@ struct FWeaponCollider
 	FRotator Orientation;
 };
 
+USTRUCT(BlueprintType)
+struct FHitVFX
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere)
+	class UNiagaraSystem* ParticleTemplate;
+	UPROPERTY(EditAnywhere)
+	FVector Offset;
+	UPROPERTY(EditAnywhere)
+	FRotator Orientation;
+	UPROPERTY(EditAnywhere)
+	FVector Scale;
+};
+
 UCLASS()
 class ACTIONRPG_API AWeapon : public AEquipment
 {
@@ -105,4 +120,11 @@ private: // Collision
 #if ENABLE_DRAW_DEBUG
 	bool bEnableDebugDraw = false;
 #endif
+
+public: // VFX
+	const FHitVFX& GetHitVFX() const;
+
+private: // VFX
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon", meta = (AllowPrivateAccess = "true"))
+	FHitVFX HitVFX;
 };
