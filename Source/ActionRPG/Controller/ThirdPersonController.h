@@ -100,12 +100,17 @@ private:
 	float BaseLookUpRate = 45;
 
 	//ACharacter* ControlledChar = nullptr;
+	UPROPERTY()
 	USpringArmComponent* CameraBoom = nullptr;
+	UPROPERTY()
 	UCameraComponent* FollowCamera = nullptr;
+	UPROPERTY()
 	UCharacterMovementComponent* CharacterMovementComp = nullptr;
 
-	// Animation
+private: // Animation
+	UPROPERTY()
 	UGameCharacterAnimInstance* AnimInstance = nullptr;
+
 	FDelegateHandle AnimEnterStateDelegateHandles;
 	FDelegateHandle AnimExitStateDelegateHandles;
 	FDelegateHandle AnimFullyBlendStateDelegateHandles;

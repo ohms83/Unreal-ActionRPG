@@ -47,6 +47,15 @@ void ABattleCharacter::OnJumped_Implementation()
 	}
 }
 
+void ABattleCharacter::UpdateStats()
+{
+	for (const auto& KeyValue : EquipmentList)
+	{
+		const auto& Equipment = KeyValue.Value;
+		Stats += Equipment->GetStats();
+	}
+}
+
 void ABattleCharacter::OnAnimNotifyAttackStart()
 {
 	// TODO: Enable weapon's collision
@@ -58,6 +67,16 @@ void ABattleCharacter::OnAnimNotifyAttackStart()
 	if (IsValid(DodgeBehavior))
 	{
 		DodgeBehavior->LockComponent(this);
+	}
+
+	AEquipment** WeaponPtr = EquipmentList.Find(EEquipmentType::Weapon);
+	if (WeaponPtr)
+	{
+		AWeapon* Weapon = Cast<AWeapon>(*WeaponPtr);
+		if (IsValid(Weapon))
+		{
+			Weapon->EnableTraceHit(true);
+		}
 	}
 }
 
@@ -72,6 +91,16 @@ void ABattleCharacter::OnAnimNotifyAttackEnd()
 	if (IsValid(DodgeBehavior))
 	{
 		DodgeBehavior->UnlockComponent(this);
+	}
+
+	AEquipment** WeaponPtr = EquipmentList.Find(EEquipmentType::Weapon);
+	if (WeaponPtr)
+	{
+		AWeapon* Weapon = Cast<AWeapon>(*WeaponPtr);
+		if (IsValid(Weapon))
+		{
+			Weapon->EnableTraceHit(false);
+		}
 	}
 }
 
@@ -91,4 +120,88 @@ bool ABattleCharacter::ExecuteDodge(const FVector& Direction)
 		return true;
 	}
 	return false;
+}
+
+float ABattleCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	float RealDamageAmount = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+	if (RealDamageAmount <= 0) {
+		return 0;
+	}
+
+	PlayDamageMontage(DamageEvent);
+	return RealDamageAmount;
+}
+
+void ABattleCharacter::PlayDamageMontage(FDamageEvent const& DamageEvent)
+{
+	if (FrontalDamageMontages.Num() <= 0) {
+		return;
+	}
+
+	int32 Index = FMath::RandRange(0, (int32)FrontalDamageMontages.Num() - 1);
+	UAnimMontage* DamageMontage = FrontalDamageMontages[Index];
+	AnimInstance->Montage_Play(DamageMontage, 1.0f);
+}
+
+void ABattleCharacter::Equip(AEquipment* Equipment, bool bUpdateStats)
+{
+	if (!IsValid(Equipment) || Equipment->GetEquipType() == EEquipmentType::None)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Invalid equipment!"));
+		return;
+	}
+
+	const EEquipmentType EquipType = Equipment->GetEquipType();
+	AEquipment* CurrentEquipment = EquipmentList.FindOrAdd(EquipType);
+	if (IsValid(CurrentEquipment)) {
+		Unequip(CurrentEquipment, false);
+	}
+
+	FAttachmentTransformRules TransformRules = {
+		// InLocationRule
+		EAttachmentRule::KeepRelative,
+		// InRotationRule
+		EAttachmentRule::KeepRelative,
+		// InScaleRule
+		EAttachmentRule::KeepRelative,
+		// bWeldSimulatedBodies
+		false
+	};
+
+	const FName* SocketName = EquipSockets.Find(EquipType);
+	if (SocketName) {
+		Equipment->AttachToComponent(GetMesh(), TransformRules, *SocketName);
+	}
+	else {
+		UE_LOG(LogTemp, Warning, TEXT("Invalid equipment socket of type=%d"), (int32)EquipType);
+	}
+
+	EquipmentList.Add(EquipType, Equipment);
+
+	if (bUpdateStats) {
+		UpdateStats();
+	}
+}
+
+void ABattleCharacter::Unequip(AEquipment* Equipment, bool bUpdateStats)
+{
+	if (!IsValid(Equipment) || Equipment->GetEquipType() == EEquipmentType::None)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Invalid equipment!"));
+		return;
+	}
+
+	const EEquipmentType EquipType = Equipment->GetEquipType();
+	AEquipment* CurrentEquipment = EquipmentList.FindOrAdd(EquipType);
+	if (IsValid(CurrentEquipment) && CurrentEquipment == Equipment) {
+		EquipmentList.Remove(EquipType);
+	}
+	else {
+		UE_LOG(LogTemp, Warning, TEXT("Cannot unequip an invalid equipment!"));
+	}
+
+	if (bUpdateStats) {
+		UpdateStats();
+	}
 }

@@ -7,11 +7,13 @@
 #include "CharacterData.h"
 
 #include "ActionRPG/Battle/BattleData.h"
+#include "ActionRPG/Actor/Equipment.h"
 
 #include "BattleCharacter.generated.h"
 
 class UAttackBehavior;
 class UDodgeBehavior;
+class AEquipment;
 
 UCLASS()
 class ACTIONRPG_API ABattleCharacter : public AGameCharacter
@@ -35,9 +37,13 @@ public:
 	
 	virtual void OnJumped_Implementation() override;
 
-private:
+private: // Stats
 	FCharacterStats Stats;
 
+public: // Stats
+	void UpdateStats();
+
+private: // Components
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gameplay Component", meta = (AllowPrivateAccess = "true"))
 	UAttackBehavior* AttackBehavior = nullptr;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gameplay Component", meta = (AllowPrivateAccess = "true"))
@@ -53,4 +59,33 @@ public: // Attack
 
 public: // Dodge
 	bool ExecuteDodge(const FVector& Direction);
+
+public: // Damage
+	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser);
+
+protected: // Damage
+	void PlayDamageMontage(struct FDamageEvent const& DamageEvent);
+
+private: // Damage
+	UPROPERTY(EditDefaultsOnly, Category = "Battle Character|Damage", meta = (AllowPrivateAccess = "true"))
+	TArray<UAnimMontage*> FrontalDamageMontages;
+	UPROPERTY(EditDefaultsOnly, Category = "Battle Character|Damage", meta = (AllowPrivateAccess = "true"))
+	TArray<UAnimMontage*> RearDamageMontages;
+	UPROPERTY(EditDefaultsOnly, Category = "Battle Character|Damage", meta = (AllowPrivateAccess = "true"))
+	TArray<UAnimMontage*> LeftDamageMontages;
+	UPROPERTY(EditDefaultsOnly, Category = "Battle Character|Damage", meta = (AllowPrivateAccess = "true"))
+	TArray<UAnimMontage*> RightDamageMontages;
+
+public: // Equipment
+	UFUNCTION(BlueprintCallable, Category = "Battle Character|Equipment")
+	void Equip(AEquipment* Equipment, bool bUpdateStats = true);
+	UFUNCTION(BlueprintCallable, Category = "Battle Character|Equipment")
+	void Unequip(AEquipment* Equipment, bool bUpdateStats = true);
+
+protected: // Equipment
+	UPROPERTY()
+	TMap<EEquipmentType, AEquipment*> EquipmentList;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Battle Character|Equipment")
+	TMap<EEquipmentType, FName> EquipSockets;
 };
