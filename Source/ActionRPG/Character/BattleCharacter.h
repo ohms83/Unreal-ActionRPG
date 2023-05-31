@@ -99,6 +99,10 @@ public: // Equipment
 	UFUNCTION(BlueprintCallable, Category = "Battle Character|Equipment")
 	void Unequip(AEquipment* Equipment, bool bDestroy = true, bool bUpdateStats = true);
 
+protected:
+	void EquipWeapon(AEquipment* Equipment);
+	void UnequipWeapon(AEquipment* Equipment);
+
 protected: // Equipment
 	UPROPERTY()
 	TMap<EEquipmentType, AEquipment*> EquipmentList;

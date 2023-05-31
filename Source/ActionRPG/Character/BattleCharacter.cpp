@@ -79,7 +79,6 @@ void ABattleCharacter::OnAnimNotifyAttackStart()
 		if (IsValid(Weapon))
 		{
 			Weapon->EnableTraceHit(true);
-			WeaponHitDelegate = Weapon->OnTraceHit.AddUObject(this, &ABattleCharacter::OnWeaponHit);
 		}
 	}
 }
@@ -104,7 +103,6 @@ void ABattleCharacter::OnAnimNotifyAttackEnd()
 		if (IsValid(Weapon))
 		{
 			Weapon->EnableTraceHit(false);
-			Weapon->OnTraceHit.Remove(WeaponHitDelegate);
 		}
 	}
 }
@@ -245,6 +243,15 @@ void ABattleCharacter::Equip(AEquipment* Equipment, bool bUpdateStats)
 	Equipment->SetOwner(this);
 	EquipmentList.Add(EquipType, Equipment);
 
+	switch (Equipment->GetEquipType())
+	{
+	case EEquipmentType::Weapon:
+		EquipWeapon(Equipment);
+		break;
+	default:
+		break;
+	}
+
 	if (bUpdateStats) {
 		UpdateStats();
 	}
@@ -274,8 +281,35 @@ void ABattleCharacter::Unequip(AEquipment* Equipment, bool bDestroy, bool bUpdat
 		UpdateStats();
 	}
 
+	switch (Equipment->GetEquipType())
+	{
+	case EEquipmentType::Weapon:
+		UnequipWeapon(Equipment);
+		break;
+	default:
+		break;
+	}
+
 	Equipment->SetOwner(nullptr);
 	if (bDestroy) {
 		Equipment->Destroy();
+	}
+}
+
+void ABattleCharacter::EquipWeapon(AEquipment* Equipment)
+{
+	AWeapon* Weapon = Cast<AWeapon>(Equipment);
+	if (IsValid(Weapon))
+	{
+		WeaponHitDelegate = Weapon->OnTraceHit.AddUObject(this, &ABattleCharacter::OnWeaponHit);
+	}
+}
+
+void ABattleCharacter::UnequipWeapon(AEquipment* Equipment)
+{
+	AWeapon* Weapon = Cast<AWeapon>(Equipment);
+	if (IsValid(Weapon))
+	{
+		Weapon->OnTraceHit.Remove(WeaponHitDelegate);
 	}
 }
