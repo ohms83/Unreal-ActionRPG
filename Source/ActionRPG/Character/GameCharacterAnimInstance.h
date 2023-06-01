@@ -19,14 +19,22 @@ class ACTIONRPG_API UGameCharacterAnimInstance : public UAnimInstance
 	
 public:
 	// Character's move speed using for Idle/Run blendspace
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character Properties")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Game Character Anim Instance")
 	float MoveSpeed = 0;
 	// Flag indicating whether the character is falling.
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character Properties")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Game Character Anim Instance")
 	bool bIsFalling = false;
 	// Axis value from the input event.
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character Properties")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Game Character Anim Instance")
 	FVector2D InputAxis;
+	// The orientation of the controlled pawn
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Game Character Anim Instance")
+	FRotator PawnOrientation;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Game Character Anim Instance")
+	FVector PawnMoveDirection;
+
+public:
+	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 
 	DECLARE_EVENT_OneParam(UGameCharacterAnimInstance, FStateEvent, const FString&);
 
