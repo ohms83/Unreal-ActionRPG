@@ -165,14 +165,40 @@ float ABattleCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Damag
 
 void ABattleCharacter::PlayDamageMontage(FDamageEvent const& DamageEvent, AActor* DamageCauser)
 {
-	if (FrontalDamageMontages.Num() <= 0) {
+	AWeapon* AttackWeapon = Cast<AWeapon>(DamageCauser);
+	if (!IsValid(AttackWeapon)) {
+		return;
+	}
+
+	TArray<UAnimMontage*> const* DamageMontageList = &FrontalDamageMontages;
+
+	const AActor* AttackCharacter = AttackWeapon->GetOwner();
+	const FVector AttackDirection = (AttackCharacter->GetActorLocation() - GetActorLocation()).GetSafeNormal2D();
+	const FVector OrientedDirection =
+		GetActorForwardVector().Rotation().GetInverse().RotateVector(AttackDirection);
+	const float AbsX = FMath::Abs(OrientedDirection.X);
+	const float AbsY = FMath::Abs(OrientedDirection.Y);
+
+	UE_LOG(LogTemp, Log, TEXT("OrientedDirection { X=%.2f, Y=%.2f }"), OrientedDirection.X, OrientedDirection.Y);
+	if (AbsX > AbsY)
+	{
+		DamageMontageList = (OrientedDirection.X >= 0 ? &FrontalDamageMontages : &RearDamageMontages);
+	}
+	else
+	{
+		DamageMontageList = (OrientedDirection.Y >= 0 ? &RightDamageMontages : &LeftDamageMontages);
+	}
+
+	if (DamageMontageList->Num() <= 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Cannot find a suitable damage montage!"));
 		return;
 	}
 
 	AnimInstance->Montage_Stop(0.1f, nullptr);
 
-	int32 Index = FMath::RandRange(0, (int32)FrontalDamageMontages.Num() - 1);
-	UAnimMontage* DamageMontage = FrontalDamageMontages[Index];
+	int32 Index = FMath::RandRange(0, (int32)DamageMontageList->Num() - 1);
+	UAnimMontage* DamageMontage = (*DamageMontageList)[Index];
 	AnimInstance->Montage_Play(DamageMontage, 1.0f);
 }
 
