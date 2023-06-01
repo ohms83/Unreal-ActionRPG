@@ -16,6 +16,15 @@ class UDodgeBehavior;
 class UTargetSelectorComponent;
 class AEquipment;
 
+UENUM(BlueprintType)
+enum class ECharacterOutlineType : uint8
+{
+	None			UMETA(DisplayName = "None"),
+	Ally			UMETA(DisplayName = "Ally"),
+	Enemy			UMETA(DisplayName = "Enemy"),
+	Collectible		UMETA(DisplayName = "Collectible"),
+};
+
 UCLASS()
 class ACTIONRPG_API ABattleCharacter : public AGameCharacter
 {
@@ -37,6 +46,8 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	
 	virtual void OnJumped_Implementation() override;
+
+	void ShowCharacterOutline(ECharacterOutlineType OutlineType);
 
 private: // Stats
 	FCharacterStats Stats;

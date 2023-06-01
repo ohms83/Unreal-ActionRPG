@@ -54,6 +54,16 @@ void ABattleCharacter::OnJumped_Implementation()
 	}
 }
 
+void ABattleCharacter::ShowCharacterOutline(ECharacterOutlineType OutlineType)
+{
+	UMeshComponent* TempMesh = GetMesh();
+	if (IsValid(TempMesh))
+	{
+		TempMesh->SetRenderCustomDepth((OutlineType != ECharacterOutlineType::None));
+		TempMesh->SetCustomDepthStencilValue((int32)OutlineType);
+	}
+}
+
 void ABattleCharacter::UpdateStats()
 {
 	for (const auto& KeyValue : EquipmentList)

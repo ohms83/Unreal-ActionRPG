@@ -3,11 +3,11 @@
 
 #include "TargetSelectorComponent.h"
 
-#include "GameFramework/Character.h"
 #include "Components/CapsuleComponent.h"
 #include "DrawDebugHelpers.h"
 
 #include "ActionRPG/Controller/ThirdPersonController.h"
+#include "ActionRPG/Character/BattleCharacter.h"
 
 // Sets default values for this component's properties
 UTargetSelectorComponent::UTargetSelectorComponent()
@@ -89,6 +89,18 @@ void UTargetSelectorComponent::SelectTarget(AActor* NextTarget)
 	if (IsValid(Controller))
 	{
 		//Controller->SetStrafeWalk(bValidTarget);
+	}
+
+	ABattleCharacter* NextTargetChar = Cast<ABattleCharacter>(NextTarget);
+	ABattleCharacter* CurrentTargetChar = Cast<ABattleCharacter>(Target);
+
+	if (IsValid(NextTargetChar))
+	{
+		NextTargetChar->ShowCharacterOutline(ECharacterOutlineType::Enemy);
+	}
+	else if (IsValid(CurrentTargetChar))
+	{
+		CurrentTargetChar->ShowCharacterOutline(ECharacterOutlineType::None);
 	}
 
 	Target = NextTarget;
