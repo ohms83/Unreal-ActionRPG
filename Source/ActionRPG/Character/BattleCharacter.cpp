@@ -5,6 +5,7 @@
 
 #include "ActionRPG/Component/AttackBehavior.h"
 #include "ActionRPG/Component/DodgeBehavior.h"
+#include "ActionRPG/Component/TargetSelectorComponent.h"
 #include "ActionRPG/Character/GameCharacterAnimInstance.h"
 
 #include "NiagaraSystem.h"
@@ -18,12 +19,15 @@ ABattleCharacter::ABattleCharacter()
 
 	AttackBehavior = CreateDefaultSubobject<UAttackBehavior>(TEXT("Attack Behavior"));
 	DodgeBehavior = CreateDefaultSubobject<UDodgeBehavior>(TEXT("Dodge Behavior"));
+	TargetSelector = CreateDefaultSubobject<UTargetSelectorComponent>(TEXT("Target Selector"));
 }
 
 // Called when the game starts or when spawned
 void ABattleCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+	DodgeBehavior->OnDodgeFinished.AddUObject(this, &ABattleCharacter::OnDodgeFinished);
 }
 
 // Called every frame
@@ -61,16 +65,8 @@ void ABattleCharacter::UpdateStats()
 
 void ABattleCharacter::OnAnimNotifyAttackStart()
 {
-	// TODO: Enable weapon's collision
-	if (IsValid(AttackBehavior))
-	{
-		AttackBehavior->OnAnimNotifyAttackStart();
-	}
-
-	if (IsValid(DodgeBehavior))
-	{
-		DodgeBehavior->LockComponent(this);
-	}
+	AttackBehavior->OnAnimNotifyAttackStart();
+	DodgeBehavior->LockComponent(this);
 
 	AEquipment** WeaponPtr = EquipmentList.Find(EEquipmentType::Weapon);
 	if (WeaponPtr)
@@ -85,16 +81,8 @@ void ABattleCharacter::OnAnimNotifyAttackStart()
 
 void ABattleCharacter::OnAnimNotifyAttackEnd()
 {
-	// TODO: Disable weapon's collision
-	if (IsValid(AttackBehavior))
-	{
-		AttackBehavior->OnAnimNotifyAttackEnd();
-	}
-
-	if (IsValid(DodgeBehavior))
-	{
-		DodgeBehavior->UnlockComponent(this);
-	}
+	AttackBehavior->OnAnimNotifyAttackEnd();
+	DodgeBehavior->UnlockComponent(this);
 
 	AEquipment** WeaponPtr = EquipmentList.Find(EEquipmentType::Weapon);
 	if (WeaponPtr)
@@ -127,20 +115,26 @@ void ABattleCharacter::OnWeaponHit(AWeapon* Weapon, const TArray<FHitResult>& Hi
 
 void ABattleCharacter::ExecuteAttack()
 {
-	if (IsValid(AttackBehavior))
-	{
-		AttackBehavior->RegisterCombo();
-	}
+	AttackBehavior->RegisterCombo();
 }
 
 bool ABattleCharacter::ExecuteDodge(const FVector& Direction)
 {
-	if (IsValid(DodgeBehavior) && DodgeBehavior->Dodge(Direction))
+	if (DodgeBehavior->Dodge(Direction))
 	{
 		AttackBehavior->CancleAttack();
+		TargetSelector->LockComponent(this);
 		return true;
 	}
 	return false;
+}
+
+void ABattleCharacter::OnDodgeFinished(ACharacter* DodgingActor)
+{
+	if (DodgingActor == this)
+	{
+		TargetSelector->UnlockComponent(this);
+	}
 }
 
 float ABattleCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
@@ -246,7 +240,7 @@ void ABattleCharacter::Equip(AEquipment* Equipment, bool bUpdateStats)
 	switch (Equipment->GetEquipType())
 	{
 	case EEquipmentType::Weapon:
-		EquipWeapon(Equipment);
+		Equip_Weapon(Equipment);
 		break;
 	default:
 		break;
@@ -284,7 +278,7 @@ void ABattleCharacter::Unequip(AEquipment* Equipment, bool bDestroy, bool bUpdat
 	switch (Equipment->GetEquipType())
 	{
 	case EEquipmentType::Weapon:
-		UnequipWeapon(Equipment);
+		Unequip_Weapon(Equipment);
 		break;
 	default:
 		break;
@@ -296,7 +290,7 @@ void ABattleCharacter::Unequip(AEquipment* Equipment, bool bDestroy, bool bUpdat
 	}
 }
 
-void ABattleCharacter::EquipWeapon(AEquipment* Equipment)
+void ABattleCharacter::Equip_Weapon(AEquipment* Equipment)
 {
 	AWeapon* Weapon = Cast<AWeapon>(Equipment);
 	if (IsValid(Weapon))
@@ -305,11 +299,21 @@ void ABattleCharacter::EquipWeapon(AEquipment* Equipment)
 	}
 }
 
-void ABattleCharacter::UnequipWeapon(AEquipment* Equipment)
+void ABattleCharacter::Unequip_Weapon(AEquipment* Equipment)
 {
 	AWeapon* Weapon = Cast<AWeapon>(Equipment);
 	if (IsValid(Weapon))
 	{
 		Weapon->OnTraceHit.Remove(WeaponHitDelegate);
 	}
+}
+
+void ABattleCharacter::SelectTarget(AActor* NextTarget)
+{
+	TargetSelector->SelectTarget(NextTarget);
+}
+
+AActor* ABattleCharacter::GetSelectedTarget() const
+{
+	return TargetSelector->GetSelectedTarget();
 }

@@ -22,12 +22,24 @@ UDodgeBehavior::UDodgeBehavior()
 void UDodgeBehavior::BeginPlay()
 {
 	Super::BeginPlay();
+	// Only tick whild dodging to save the CPU time
+	SetComponentTickEnabled(false);
 }
 
 // Called every frame
 void UDodgeBehavior::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	if (IsLocked()) {
+		return;
+	}
+
+	if (!IsDodging())
+	{
+		OnDodgeFinished.Broadcast(Cast<ACharacter>(GetOwner()));
+		SetComponentTickEnabled(false);
+	}
 }
 
 bool UDodgeBehavior::Dodge(const FVector& Direction)
@@ -62,7 +74,15 @@ bool UDodgeBehavior::Dodge(const FVector& Direction)
 				MontageStartAt, Seconds);
 			return false;
 		}
-		return Seconds > 0;
+
+		bool bIsDodging = Seconds > 0;
+		if (bIsDodging)
+		{
+			OnDodgeStarted.Broadcast(Cast<ACharacter>(GetOwner()));
+			SetComponentTickEnabled(true);
+		}
+
+		return bIsDodging;
 	}
 	return false;
 }

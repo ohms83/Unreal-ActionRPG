@@ -85,6 +85,17 @@ bool AThirdPersonController::IsInputLocked(EInputLockFlag LockFlag) const
     return InputLockFlag & (uint8)LockFlag;
 }
 
+void AThirdPersonController::SetStrafeWalk(bool bFlag)
+{
+    bStrafeWalk = bFlag;
+
+    CameraBoom->bUsePawnControlRotation = !bFlag;
+    if (IsValid(CharacterMovementComp))
+    {
+        CharacterMovementComp->bOrientRotationToMovement = !bFlag;
+    }
+}
+
 void AThirdPersonController::InitAnimInstance(APawn* aPawn)
 {
     const auto TempCharacter = Cast<ACharacter>(aPawn);
@@ -117,7 +128,9 @@ void AThirdPersonController::OnInputAxisMoveForward(float AxisValue)
     }
 
     FRotator Rotator(0, GetControlRotation().Yaw, 0);
-    FVector Direction = UKismetMathLibrary::GetForwardVector(Rotator);
+    FVector Direction = bStrafeWalk ?
+        GetPawn()->GetActorForwardVector() :
+        UKismetMathLibrary::GetForwardVector(Rotator);
 
     if (IsValid(AnimInstance))
     {
@@ -135,7 +148,9 @@ void AThirdPersonController::OnInputAxisMoveRight(float AxisValue)
     }
 
     FRotator Rotator(0, GetControlRotation().Yaw, 0);
-    FVector Direction = UKismetMathLibrary::GetRightVector(Rotator);
+    FVector Direction = bStrafeWalk ? 
+        GetPawn()->GetActorRightVector() :
+        UKismetMathLibrary::GetRightVector(Rotator);
 
     if (IsValid(AnimInstance)) 
     {

@@ -40,6 +40,11 @@ public:
 
 	const FVector2D& GetInputAxis() const { return InputAxis; }
 
+	UFUNCTION(BlueprintCallable, Category = "Third Person Controller|Control")
+	void SetStrafeWalk(bool bFlag);
+	UFUNCTION(BlueprintCallable, Category = "Third Person Controller|Control")
+	bool IsStrafeWalk() const { return bStrafeWalk; }
+
 protected:
 	virtual void SetupInputComponent() override;
 
@@ -98,6 +103,8 @@ private:
 	float BaseTurnRate = 45;
 	UPROPERTY(EditAnyWhere, Category = "Control")
 	float BaseLookUpRate = 45;
+	UPROPERTY(EditAnyWhere, Category = "Control")
+	bool bStrafeWalk = false;
 
 	//ACharacter* ControlledChar = nullptr;
 	UPROPERTY()

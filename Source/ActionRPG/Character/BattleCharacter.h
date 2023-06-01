@@ -13,6 +13,7 @@
 
 class UAttackBehavior;
 class UDodgeBehavior;
+class UTargetSelectorComponent;
 class AEquipment;
 
 UCLASS()
@@ -48,6 +49,8 @@ private: // Components
 	UAttackBehavior* AttackBehavior = nullptr;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gameplay Component", meta = (AllowPrivateAccess = "true"))
 	UDodgeBehavior* DodgeBehavior = nullptr;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gameplay Component", meta = (AllowPrivateAccess = "true"))
+	UTargetSelectorComponent* TargetSelector = nullptr;
 
 public: // Attack
 	void ExecuteAttack();
@@ -61,6 +64,9 @@ public: // Attack
 
 public: // Dodge
 	bool ExecuteDodge(const FVector& Direction);
+
+protected:
+	void OnDodgeFinished(ACharacter* DodgingActor);
 
 public: // Damage
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser);
@@ -100,8 +106,10 @@ public: // Equipment
 	void Unequip(AEquipment* Equipment, bool bDestroy = true, bool bUpdateStats = true);
 
 protected:
-	void EquipWeapon(AEquipment* Equipment);
-	void UnequipWeapon(AEquipment* Equipment);
+	// An internal function that contains the logics for equiping weapon
+	void Equip_Weapon(AEquipment* Equipment);
+	// An internal function that contains the logics for unequiping weapon
+	void Unequip_Weapon(AEquipment* Equipment);
 
 protected: // Equipment
 	UPROPERTY()
@@ -111,4 +119,10 @@ protected: // Equipment
 	TMap<EEquipmentType, FName> EquipSockets;
 
 	FDelegateHandle WeaponHitDelegate;
+
+public:
+	UFUNCTION(BlueprintCallable, Category = "Battle Character|Target")
+	void SelectTarget(AActor* NextTarget);
+	UFUNCTION(BlueprintCallable, Category = "Battle Character|Target")
+	AActor* GetSelectedTarget() const;
 };

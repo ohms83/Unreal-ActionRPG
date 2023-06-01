@@ -36,6 +36,11 @@ public:
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
+public:
+	DECLARE_MULTICAST_DELEGATE_OneParam(FDodgeDelegate, class ACharacter* /*Dodging character*/);
+	FDodgeDelegate OnDodgeStarted;
+	FDodgeDelegate OnDodgeFinished;
+
 private:
 	// Dodge
 	UPROPERTY(EditDefaultsOnly, meta = (AllowPrivateAccess = "true"))
