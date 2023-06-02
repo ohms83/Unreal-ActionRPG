@@ -3,7 +3,6 @@
 
 #include "TargetSelectorComponent.h"
 
-#include "Components/CapsuleComponent.h"
 #include "DrawDebugHelpers.h"
 
 #include "ActionRPG/Controller/ThirdPersonController.h"
@@ -62,13 +61,6 @@ void UTargetSelectorComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 		Orientation = FMath::Lerp(Pawn->GetActorRotation(), Orientation, Alpha);
 	}
 	Pawn->SetActorRotation(Orientation);
-
-	ACharacter* TargetCharacter = Cast<ACharacter>(Target.Get());
-	if (TargetCharacter)
-	{
-		FVector TargetCenter = TargetCharacter->GetActorLocation();
-		TargetCenter.Z = TargetCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
-	}
 }
 
 void UTargetSelectorComponent::SelectTargetFromInput(FVector2D InputAxis)
