@@ -56,4 +56,12 @@ struct FCharacterStats
 
 	FCharacterStats operator - (const FCharacterStats& Rhs) const;
 	FCharacterStats& operator -= (const FCharacterStats& Rhs);
+
+	FCharacterStats operator * (float Multiplier) const;
+	FCharacterStats& operator *= (float Multiplier);
+
+	FCharacterStats operator / (float Divider) const;
+	FCharacterStats& operator /= (float Divider);
+
+	float GetHpPercent() const;
 };

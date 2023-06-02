@@ -24,7 +24,9 @@ ABattleCharacter::ABattleCharacter()
 	TargetSelector = CreateDefaultSubobject<UTargetSelectorComponent>(TEXT("Target Selector"));
 
 	Stats.Hp = 100;
+	Stats.MaxHp = 100;
 	Stats.Atk = 10;
+	Stats.Def = 10;
 }
 
 // Called when the game starts or when spawned
@@ -78,6 +80,30 @@ void ABattleCharacter::UpdateStats()
 	}
 }
 
+const FCharacterStats& ABattleCharacter::GetStats() const
+{
+	return Stats;
+}
+
+void ABattleCharacter::SetStats(const FCharacterStats& NewStats, bool bUpdateStats)
+{
+	Stats = NewStats;
+	if (bUpdateStats) {
+		UpdateStats();
+	}
+}
+
+float ABattleCharacter::CalculateDamage(ABattleCharacter* Attacker, ABattleCharacter* Defender)
+{
+	if (!IsValid(Attacker) || !IsValid(Defender)) {
+		return 0;
+	}
+
+	float Damage = ((4.0f * Attacker->Stats.Atk) - Defender->Stats.Def) / (1 + Defender->Stats.Def);
+	Damage = FMath::Max(1.f, Damage);
+	return Damage;
+}
+
 void ABattleCharacter::OnAnimNotifyAttackStart()
 {
 	AttackBehavior->OnAnimNotifyAttackStart();
@@ -122,12 +148,13 @@ void ABattleCharacter::OnWeaponHit(AWeapon* Weapon, const TArray<FHitResult>& Hi
 			continue;
 		}
 
-		ABattleCharacter* BattleCharacter = Cast<ABattleCharacter>(HitResult.Actor);
-		if (BattleCharacter)
+		ABattleCharacter* HitCharacter = Cast<ABattleCharacter>(HitResult.Actor);
+		if (HitCharacter)
 		{
 			FPointDamageEvent DamageEvent;
 			DamageEvent.HitInfo = HitResult;
-			BattleCharacter->TakeDamage(10, DamageEvent, GetController(), Weapon);
+			DamageEvent.Damage = CalculateDamage(this, HitCharacter);
+			HitCharacter->TakeDamage(DamageEvent.Damage, DamageEvent, GetController(), Weapon);
 		}
 	}
 }

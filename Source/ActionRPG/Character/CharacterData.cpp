@@ -130,3 +130,82 @@ FCharacterStats& FCharacterStats::operator-=(const FCharacterStats& Rhs)
 
 	return *this;
 }
+
+FCharacterStats FCharacterStats::operator*(float Multiplier) const
+{
+	FCharacterStats Result{ 0 };
+
+	Result.Hp = Hp * Multiplier;
+	Result.Mp = Mp * Multiplier;
+	Result.MaxHp = MaxHp * Multiplier;
+	Result.MaxMp = MaxMp * Multiplier;
+	Result.Atk = Atk * Multiplier;
+	Result.Def = Def * Multiplier;
+	Result.MAtk = Def * Multiplier;
+	Result.MDef = MDef * Multiplier;
+
+	return Result;
+}
+
+FCharacterStats& FCharacterStats::operator*=(float Multiplier)
+{
+	Hp *= Multiplier;
+	Mp *= Multiplier;
+	MaxHp *= Multiplier;
+	MaxMp *= Multiplier;
+	Atk *= Multiplier;
+	Def *= Multiplier;
+	MAtk *= Multiplier;
+	MDef *= Multiplier;
+
+	return *this;
+}
+
+FCharacterStats FCharacterStats::operator/(float Divider) const
+{
+	FCharacterStats Result{ 0 };
+
+	if (Divider == 0) {
+		return Result;
+	}
+
+	Result.Hp = Hp / Divider;
+	Result.Mp = Mp / Divider;
+	Result.MaxHp = MaxHp / Divider;
+	Result.MaxMp = MaxMp / Divider;
+	Result.Atk = Atk / Divider;
+	Result.Def = Def / Divider;
+	Result.MAtk = Def / Divider;
+	Result.MDef = MDef / Divider;
+
+	return Result;
+}
+
+FCharacterStats& FCharacterStats::operator/=(float Divider)
+{
+	if (Divider == 0) {
+		return *this;
+	}
+
+	Hp /= Divider;
+	Mp /= Divider;
+	MaxHp /= Divider;
+	MaxMp /= Divider;
+	Atk /= Divider;
+	Def /= Divider;
+	MAtk /= Divider;
+	MDef /= Divider;
+
+	return *this;
+}
+
+float FCharacterStats::GetHpPercent() const
+{
+	if (MaxHp == 0) {
+		return 0;
+	}
+	if (MaxHp < Hp) {
+		return 1;
+	}
+	return (float)Hp / (float)MaxHp;
+}

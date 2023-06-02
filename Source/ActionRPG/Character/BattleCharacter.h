@@ -60,12 +60,20 @@ public: // Stats
 	UFUNCTION(BlueprintCallable, Category = "Battle Character|Stats")
 	void UpdateStats();
 
-private: // Components
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gameplay Component", meta = (AllowPrivateAccess = "true"))
+	UFUNCTION(BlueprintCallable, Category = "Battle Character|Stats")
+	const FCharacterStats& GetStats() const;
+	UFUNCTION(BlueprintCallable, Category = "Battle Character|Stats")
+	void SetStats(const FCharacterStats& NewStats, bool bUpdateStats = true);
+
+	// TODO: Move to Battle Manager
+	static float CalculateDamage(ABattleCharacter* Attacker, ABattleCharacter* Defender);
+
+public: // Components
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gameplay Component")
 	UAttackBehavior* AttackBehavior = nullptr;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gameplay Component", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gameplay Component")
 	UDodgeBehavior* DodgeBehavior = nullptr;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gameplay Component", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gameplay Component")
 	UTargetSelectorComponent* TargetSelector = nullptr;
 
 public: // Attack

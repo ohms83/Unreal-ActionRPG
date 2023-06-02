@@ -91,25 +91,13 @@ void UTargetSelectorComponent::SelectTarget(AActor* NextTarget)
 		OwnerController->SetStrafeWalk(bValidTarget);
 	}*/
 
-	ABattleCharacter* NextTargetChar = Cast<ABattleCharacter>(NextTarget);
-	ABattleCharacter* CurrentTargetChar = Cast<ABattleCharacter>(Target);
-	if (IsValid(NextTargetChar))
+	if (IsValid(NextTarget))
 	{
-		if (!NextTargetChar->IsDead())
-		{
-			NextTargetChar->ShowCharacterOutline(ECharacterOutlineType::Enemy);
-			OnTargetDeadDelegateHandle =
-				NextTargetChar->OnDeadDelegate.AddUObject(this, &UTargetSelectorComponent::OnTargetDead);
-		}
-		else
-		{
-			SetComponentTickEnabled(false);
-		}
+		SelectTarget_Internal(NextTarget);
 	}
-	else if (IsValid(CurrentTargetChar))
+	else if(Target.IsValid())
 	{
-		CurrentTargetChar->ShowCharacterOutline(ECharacterOutlineType::None);
-		CurrentTargetChar->OnDeadDelegate.Remove(OnTargetDeadDelegateHandle);
+		UnselectTarget_Internal(Target.Get());
 	}
 
 	Target = NextTarget;
@@ -121,5 +109,47 @@ void UTargetSelectorComponent::OnTargetDead(ABattleCharacter* DeadTarget)
 	{
 		// Unselect the target
 		SelectTarget(nullptr);
+	}
+}
+
+void UTargetSelectorComponent::SelectTarget_Internal(AActor* NextTarget)
+{
+	ABattleCharacter* NextTargetChar = Cast<ABattleCharacter>(NextTarget);
+
+	if (!NextTargetChar->IsDead())
+	{
+		NextTargetChar->ShowCharacterOutline(ECharacterOutlineType::Enemy);
+		OnTargetDeadDelegateHandle =
+			NextTargetChar->OnDeadDelegate.AddUObject(this, &UTargetSelectorComponent::OnTargetDead);
+	}
+	else
+	{
+		SetComponentTickEnabled(false);
+	}
+
+	SetBeingTargettedBy(this->GetOwner(), NextTarget);
+}
+
+void UTargetSelectorComponent::UnselectTarget_Internal(AActor* NextTarget)
+{
+	ABattleCharacter* CurrentTargetChar = Cast<ABattleCharacter>(NextTarget);
+	CurrentTargetChar->ShowCharacterOutline(ECharacterOutlineType::None);
+	CurrentTargetChar->OnDeadDelegate.Remove(OnTargetDeadDelegateHandle);
+
+	SetBeingTargettedBy(nullptr, Target.Get());
+}
+
+void UTargetSelectorComponent::SetBeingTargettedBy(AActor* TargettingActor, AActor* TargetActor)
+{
+	if (!IsValid(TargetActor)) {
+		return;
+	}
+
+	UTargetSelectorComponent* TargetSelectorComponent =
+		Cast<UTargetSelectorComponent>(TargetActor->GetComponentByClass(UTargetSelectorComponent::StaticClass()));
+
+	if (IsValid(TargetSelectorComponent))
+	{
+		TargetSelectorComponent->BeingTargettedBy = TargettingActor;
 	}
 }
