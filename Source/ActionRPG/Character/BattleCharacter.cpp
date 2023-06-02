@@ -3,6 +3,8 @@
 
 #include "BattleCharacter.h"
 
+#include "Components/CapsuleComponent.h"
+
 #include "ActionRPG/Component/AttackBehavior.h"
 #include "ActionRPG/Component/DodgeBehavior.h"
 #include "ActionRPG/Component/TargetSelectorComponent.h"
@@ -20,6 +22,9 @@ ABattleCharacter::ABattleCharacter()
 	AttackBehavior = CreateDefaultSubobject<UAttackBehavior>(TEXT("Attack Behavior"));
 	DodgeBehavior = CreateDefaultSubobject<UDodgeBehavior>(TEXT("Dodge Behavior"));
 	TargetSelector = CreateDefaultSubobject<UTargetSelectorComponent>(TEXT("Target Selector"));
+
+	Stats.Hp = 100;
+	Stats.Atk = 10;
 }
 
 // Called when the game starts or when spawned
@@ -107,6 +112,10 @@ void ABattleCharacter::OnAnimNotifyAttackEnd()
 
 void ABattleCharacter::OnWeaponHit(AWeapon* Weapon, const TArray<FHitResult>& HitResults)
 {
+	if (IsDead()) {
+		return;
+	}
+
 	for (const FHitResult& HitResult : HitResults)
 	{
 		if (HitResult.Actor == this) {
@@ -125,11 +134,18 @@ void ABattleCharacter::OnWeaponHit(AWeapon* Weapon, const TArray<FHitResult>& Hi
 
 void ABattleCharacter::ExecuteAttack()
 {
+	if (IsDead()) {
+		return;
+	}
 	AttackBehavior->RegisterCombo();
 }
 
 bool ABattleCharacter::ExecuteDodge(const FVector& Direction)
 {
+	if (IsDead()) {
+		return false;
+	}
+
 	if (DodgeBehavior->Dodge(Direction))
 	{
 		AttackBehavior->CancleAttack();
@@ -149,7 +165,7 @@ void ABattleCharacter::OnDodgeFinished(ACharacter* DodgingActor)
 
 float ABattleCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
-	if (!bCanTkeDamage) {
+	if (!bCanTakeDamage || IsDead()) {
 		return 0;
 	}
 
@@ -158,10 +174,21 @@ float ABattleCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Damag
 		return 0;
 	}
 
-	PlayDamageMontage(DamageEvent, DamageCauser);
+	Stats.Hp -= (int32)RealDamageAmount;
+	OnDamageDelegate.Broadcast(this, DamageEvent, RealDamageAmount);
+
+	if (Stats.Hp <= 0)
+	{
+		OnDead(DamageEvent, DamageCauser);
+	}
+	else
+	{
+		PlayDamageMontage(DamageEvent, DamageCauser);
+	}
+
 	PlayHitFX(DamageEvent, DamageCauser);
 
-	bCanTkeDamage = false;
+	bCanTakeDamage = false;
 	GetWorld()->GetTimerManager().SetTimer(
 		InvincibleFrameHandle,
 		this,
@@ -171,6 +198,17 @@ float ABattleCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Damag
 	);
 
 	return RealDamageAmount;
+}
+
+bool ABattleCharacter::IsDead() const
+{
+	return Stats.Hp <= 0;
+}
+
+void ABattleCharacter::PlayDeadMontage()
+{
+	AnimInstance->Montage_Stop(0.1f, nullptr);
+	AnimInstance->Montage_Play(DeadMontage, 1.0f);
 }
 
 void ABattleCharacter::PlayDamageMontage(FDamageEvent const& DamageEvent, AActor* DamageCauser)
@@ -241,11 +279,53 @@ void ABattleCharacter::PlayHitFX(FDamageEvent const& DamageEvent, AActor* Damage
 
 void ABattleCharacter::OnInvincibleFrameEnd()
 {
-	bCanTkeDamage = true;
+	bCanTakeDamage = true;
+}
+
+void ABattleCharacter::OnDead(FDamageEvent const& DamageEvent, AActor* DamageCauser)
+{
+	PlayDeadMontage();
+	OnDeadDelegate.Broadcast(this);
+
+	AttackBehavior->LockComponent(this);
+	DodgeBehavior->LockComponent(this);
+
+	TargetSelector->SelectTarget(nullptr);
+	TargetSelector->LockComponent(this);
+
+	SetCanBeDamaged(false);
+
+	auto CapsuleComp = GetCapsuleComponent();
+	if (IsValid(CapsuleComp))
+	{
+		//CapsuleComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+
+	const AActor* Attacker = IsValid(DamageCauser) ? DamageCauser->GetOwner() : nullptr;
+	float KnockbackSpeed = 1000.f;
+	FVector KnockbackDirection;
+
+	if (Attacker)
+	{
+		KnockbackDirection = (GetActorLocation() - DamageCauser->GetActorLocation()).GetSafeNormal2D();
+	}
+	else
+	{
+		KnockbackDirection = -GetActorForwardVector();
+	}
+
+	KnockbackDirection.Z = FMath::Tan(FMath::DegreesToRadians(30.f));
+
+	UE_LOG(LogTemp, Log, TEXT("KnockbackDirection=%s"), *KnockbackDirection.ToString());
+	LaunchCharacter(KnockbackDirection.GetSafeNormal() * KnockbackSpeed, true, false);
 }
 
 void ABattleCharacter::Equip(AEquipment* Equipment, bool bUpdateStats)
 {
+	if (IsDead()) {
+		return;
+	}
+
 	if (!IsValid(Equipment) || Equipment->GetEquipType() == EEquipmentType::None)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Invalid equipment!"));
@@ -289,6 +369,10 @@ void ABattleCharacter::Equip(AEquipment* Equipment, bool bUpdateStats)
 
 void ABattleCharacter::Unequip(AEquipment* Equipment, bool bDestroy, bool bUpdateStats)
 {
+	if (IsDead()) {
+		return;
+	}
+
 	if (!IsValid(Equipment) || Equipment->GetEquipType() == EEquipmentType::None)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Invalid equipment!"));
@@ -346,6 +430,10 @@ void ABattleCharacter::Unequip_Weapon(AEquipment* Equipment)
 
 void ABattleCharacter::SelectTarget(AActor* NextTarget)
 {
+	if (IsDead()) {
+		return;
+	}
+
 	TargetSelector->SelectTarget(NextTarget);
 }
 

@@ -39,7 +39,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target Selector")
 	float RotationRate = 0.2f;
 
+protected:
+	void OnTargetDead(class ABattleCharacter* Target);
+
 private:
 	TWeakObjectPtr<AActor> Target;
-		
+	FDelegateHandle OnTargetDeadDelegateHandle;
 };

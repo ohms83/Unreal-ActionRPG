@@ -53,7 +53,7 @@ void AWeapon::Tick(float DeltaTime)
 
 		TArray<AActor*> ActorsToIgnore = {
 			Cast<AActor>(this),
-			Cast<AActor>(OwnerChar)
+			GetOwner(),
 		};
 
 		TArray<FHitResult> OutHits;

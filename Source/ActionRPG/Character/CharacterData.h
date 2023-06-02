@@ -35,21 +35,21 @@ struct FCharacterStats
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere)
-	uint32 Hp;
+	int32 Hp;
 	UPROPERTY(EditAnywhere)
-	uint32 Mp;
+	int32 Mp;
 	UPROPERTY(EditAnywhere)
-	uint32 MaxHp;
+	int32 MaxHp;
 	UPROPERTY(EditAnywhere)
-	uint32 MaxMp;
+	int32 MaxMp;
 	UPROPERTY(EditAnywhere)
-	uint32 Atk;
+	int32 Atk;
 	UPROPERTY(EditAnywhere)
-	uint32 Def;
+	int32 Def;
 	UPROPERTY(EditAnywhere)
-	uint32 MAtk;
+	int32 MAtk;
 	UPROPERTY(EditAnywhere)
-	uint32 MDef;
+	int32 MDef;
 
 	FCharacterStats operator + (const FCharacterStats& Rhs) const;
 	FCharacterStats& operator += (const FCharacterStats& Rhs);

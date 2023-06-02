@@ -78,30 +78,48 @@ void UTargetSelectorComponent::SelectTargetFromInput(FVector2D InputAxis)
 
 void UTargetSelectorComponent::SelectTarget(AActor* NextTarget)
 {
-	const bool bValidTarget = IsValid(NextTarget);
-	if (bValidTarget) {
-		SetComponentTickEnabled(true);
+	if (IsLocked()) {
+		return;
 	}
 
-	APawn* OwnerPawn = Cast<APawn>(GetOwner());
-	AThirdPersonController* Controller = Cast<AThirdPersonController>(OwnerPawn->GetController());
+	SetComponentTickEnabled(IsValid(NextTarget));
 
-	if (IsValid(Controller))
+	/*APawn* OwnerPawn = Cast<APawn>(GetOwner());
+	AThirdPersonController* OwnerController = Cast<AThirdPersonController>(OwnerPawn->GetController());
+	if (IsValid(OwnerController))
 	{
-		//Controller->SetStrafeWalk(bValidTarget);
-	}
+		OwnerController->SetStrafeWalk(bValidTarget);
+	}*/
 
 	ABattleCharacter* NextTargetChar = Cast<ABattleCharacter>(NextTarget);
 	ABattleCharacter* CurrentTargetChar = Cast<ABattleCharacter>(Target);
-
 	if (IsValid(NextTargetChar))
 	{
-		NextTargetChar->ShowCharacterOutline(ECharacterOutlineType::Enemy);
+		if (!NextTargetChar->IsDead())
+		{
+			NextTargetChar->ShowCharacterOutline(ECharacterOutlineType::Enemy);
+			OnTargetDeadDelegateHandle =
+				NextTargetChar->OnDeadDelegate.AddUObject(this, &UTargetSelectorComponent::OnTargetDead);
+		}
+		else
+		{
+			SetComponentTickEnabled(false);
+		}
 	}
 	else if (IsValid(CurrentTargetChar))
 	{
 		CurrentTargetChar->ShowCharacterOutline(ECharacterOutlineType::None);
+		CurrentTargetChar->OnDeadDelegate.Remove(OnTargetDeadDelegateHandle);
 	}
 
 	Target = NextTarget;
+}
+
+void UTargetSelectorComponent::OnTargetDead(ABattleCharacter* DeadTarget)
+{
+	if (IsValid(DeadTarget) && Target == DeadTarget)
+	{
+		// Unselect the target
+		SelectTarget(nullptr);
+	}
 }

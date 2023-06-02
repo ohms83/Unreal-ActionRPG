@@ -16,6 +16,9 @@ class UDodgeBehavior;
 class UTargetSelectorComponent;
 class AEquipment;
 
+DECLARE_MULTICAST_DELEGATE_OneParam(FGenericCharacterDelegate, class ABattleCharacter* /*this*/);
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FCharacterDamageDelegate, class ABattleCharacter* /*this*/, struct FDamageEvent const& /*DamageEvent*/, float /*RealDamageAmount*/);
+
 UENUM(BlueprintType)
 enum class ECharacterOutlineType : uint8
 {
@@ -50,9 +53,11 @@ public:
 	void ShowCharacterOutline(ECharacterOutlineType OutlineType);
 
 private: // Stats
+	UPROPERTY(EditAnywhere, Category = "Battle Character")
 	FCharacterStats Stats;
 
 public: // Stats
+	UFUNCTION(BlueprintCallable, Category = "Battle Character|Stats")
 	void UpdateStats();
 
 private: // Components
@@ -87,6 +92,10 @@ protected: // Damage
 	void PlayHitFX(struct FDamageEvent const& DamageEvent, AActor* DamageCauser);
 	void OnInvincibleFrameEnd();
 
+public: // Damage
+	FCharacterDamageDelegate OnDamageDelegate;
+	FGenericCharacterDelegate OnDeadDelegate;
+
 private: // Damage
 	UPROPERTY(EditDefaultsOnly, Category = "Battle Character|Damage", meta = (AllowPrivateAccess = "true"))
 	TArray<UAnimMontage*> FrontalDamageMontages;
@@ -100,7 +109,18 @@ private: // Damage
 	float InvincibleFrame = 0.3f;
 
 	FTimerHandle InvincibleFrameHandle;
-	bool bCanTkeDamage = true;
+	bool bCanTakeDamage = true;
+
+public: // Dead
+	UFUNCTION(BlueprintCallable, Category = "Battle Character|Dead")
+	bool IsDead() const;
+
+protected: // Dead
+	void PlayDeadMontage();
+	virtual void OnDead(FDamageEvent const& DamageEvent, AActor* DamageCauser);
+private: // Dead
+	UPROPERTY(EditDefaultsOnly, Category = "Battle Character|Dead", meta = (AllowPrivateAccess = "true"))
+	UAnimMontage* DeadMontage;
 
 public: // Equipment
 	UFUNCTION(BlueprintCallable, Category = "Battle Character|Equipment")

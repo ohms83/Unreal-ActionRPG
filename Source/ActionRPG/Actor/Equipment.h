@@ -48,10 +48,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Equipment")
 	void SetEquipType(EEquipmentType NewType) { Type = NewType; }
 
-public:
-	UPROPERTY(BlueprintReadWrite, Category = "Equipment")
-	class ACharacter* OwnerChar = nullptr;
-
 protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Equipment")
 	FCharacterStats Stats;

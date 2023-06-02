@@ -172,7 +172,7 @@ void AThirdPersonController::OnInputTurn(float AxisValue)
 
 void AThirdPersonController::OnInputLookUp(float AxisValue)
 {
-    if (IsInputLocked(EInputLockFlag::Camera)) {
+    if (IsInputLocked(EInputLockFlag::Camera)){ 
         return;
     }
 
