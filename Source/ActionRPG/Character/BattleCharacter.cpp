@@ -4,6 +4,7 @@
 #include "BattleCharacter.h"
 
 #include "Components/CapsuleComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 #include "ActionRPG/Component/AttackBehavior.h"
 #include "ActionRPG/Component/DodgeBehavior.h"
@@ -142,20 +143,31 @@ void ABattleCharacter::OnWeaponHit(AWeapon* Weapon, const TArray<FHitResult>& Hi
 		return;
 	}
 
+	FAttackData CurrentAttack = AttackBehavior->GetCurrentAttack();
+
 	for (const FHitResult& HitResult : HitResults)
 	{
 		if (HitResult.Actor == this) {
 			continue;
 		}
 
+		float RealDamageValue = 0;
+		FMeleeDamageEvent DamageEvent;
+		DamageEvent.HitInfo = HitResult;
+		DamageEvent.AttackData = CurrentAttack;
+
 		ABattleCharacter* HitCharacter = Cast<ABattleCharacter>(HitResult.Actor);
 		if (HitCharacter)
 		{
-			FPointDamageEvent DamageEvent;
-			DamageEvent.HitInfo = HitResult;
 			DamageEvent.Damage = CalculateDamage(this, HitCharacter);
-			HitCharacter->TakeDamage(DamageEvent.Damage, DamageEvent, GetController(), Weapon);
+			RealDamageValue = HitCharacter->TakeDamage(DamageEvent.Damage, DamageEvent, GetController(), Weapon);
 		}
+
+		if (CurrentAttack.HitStop > 0 && RealDamageValue > 0) {
+			StartHitStop(CurrentAttack.HitStop, CurrentAttack.HitStopTimeDilation);
+		}
+
+		OnAttackHitDelegate.Broadcast(this, DamageEvent);
 	}
 }
 
@@ -164,7 +176,7 @@ void ABattleCharacter::ExecuteAttack()
 	if (IsDead()) {
 		return;
 	}
-	AttackBehavior->RegisterCombo();
+	AttackBehavior->ComboAttack();
 }
 
 bool ABattleCharacter::ExecuteDodge(const FVector& Direction)
@@ -201,8 +213,27 @@ float ABattleCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Damag
 		return 0;
 	}
 
+	// Hit-stop
+	float HitStop = 0;
+	float HitStopTimeDilation = 0;
+
+	if (DamageEvent.ClassID == MELEE_DAMAGE_EVENT_CLASS_ID)
+	{
+		const FMeleeDamageEvent& MeleeDamageEvent = static_cast<const FMeleeDamageEvent&>(DamageEvent);
+		const FAttackData& AttackData = MeleeDamageEvent.AttackData;
+
+		HitStop = AttackData.HitStop;
+		HitStopTimeDilation = AttackData.HitStopTimeDilation;
+
+		UE_LOG(LogTemp, Log, TEXT("HitStop=%.2f HitStopTimeDilation=%.2f"), HitStop, HitStopTimeDilation);
+		OnTakeMeleeDamageDelegate.Broadcast(this, MeleeDamageEvent, RealDamageAmount);
+	}
+
+	if (HitStop > 0) {
+		StartHitStop(HitStop, HitStopTimeDilation);
+	}
+
 	Stats.Hp -= (int32)RealDamageAmount;
-	OnDamageDelegate.Broadcast(this, DamageEvent, RealDamageAmount);
 
 	if (Stats.Hp <= 0)
 	{
@@ -225,6 +256,51 @@ float ABattleCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Damag
 	);
 
 	return RealDamageAmount;
+}
+
+void ABattleCharacter::Knockback(AActor* HitActor, float Speed)
+{
+	FVector KnockbackDirection;
+
+	if (IsValid(HitActor))
+	{
+		KnockbackDirection = (GetActorLocation() - HitActor->GetActorLocation()).GetSafeNormal2D();
+	}
+	else
+	{
+		KnockbackDirection = -GetActorForwardVector();
+	}
+
+	KnockbackDirection.Z = FMath::Tan(FMath::DegreesToRadians(30.f));
+
+	UE_LOG(LogTemp, Log, TEXT("KnockbackDirection=%s"), *KnockbackDirection.ToString());
+	LaunchCharacter(KnockbackDirection.GetSafeNormal() * Speed, true, false);
+
+	UCharacterMovementComponent* MoveComp = Cast<UCharacterMovementComponent>(GetMovementComponent());
+	if (IsValid(MoveComp))
+	{
+		MoveComp->GroundFriction = 0;
+	}
+
+	bKnockback = true;
+}
+
+void ABattleCharacter::StartHitStop(float Seconds, float TimeDilation)
+{
+	CustomTimeDilation = TimeDilation;
+	GetWorld()->GetTimerManager().SetTimer(
+		HitStopHandle,
+		this,
+		&ABattleCharacter::EndHitStop,
+		Seconds,
+		false
+	);
+}
+
+void ABattleCharacter::EndHitStop()
+{
+	CustomTimeDilation = 1;
+	GetWorld()->GetTimerManager().ClearTimer(HitStopHandle);
 }
 
 bool ABattleCharacter::IsDead() const
@@ -311,7 +387,6 @@ void ABattleCharacter::OnInvincibleFrameEnd()
 
 void ABattleCharacter::OnDead(FDamageEvent const& DamageEvent, AActor* DamageCauser)
 {
-	PlayDeadMontage();
 	OnDeadDelegate.Broadcast(this);
 
 	AttackBehavior->LockComponent(this);
@@ -322,29 +397,16 @@ void ABattleCharacter::OnDead(FDamageEvent const& DamageEvent, AActor* DamageCau
 
 	SetCanBeDamaged(false);
 
-	auto CapsuleComp = GetCapsuleComponent();
-	if (IsValid(CapsuleComp))
+	if (IsValid(DeadMontage))
 	{
-		//CapsuleComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	}
-
-	const AActor* Attacker = IsValid(DamageCauser) ? DamageCauser->GetOwner() : nullptr;
-	float KnockbackSpeed = 1000.f;
-	FVector KnockbackDirection;
-
-	if (Attacker)
-	{
-		KnockbackDirection = (GetActorLocation() - DamageCauser->GetActorLocation()).GetSafeNormal2D();
+		PlayDeadMontage();
 	}
 	else
 	{
-		KnockbackDirection = -GetActorForwardVector();
+		AActor* Attacker = IsValid(DamageCauser) ? DamageCauser->GetOwner() : nullptr;
+		Knockback(Attacker, DeadKnockbackSpeed);
+		AnimInstance->Montage_Stop(0.1f, nullptr);
 	}
-
-	KnockbackDirection.Z = FMath::Tan(FMath::DegreesToRadians(30.f));
-
-	UE_LOG(LogTemp, Log, TEXT("KnockbackDirection=%s"), *KnockbackDirection.ToString());
-	LaunchCharacter(KnockbackDirection.GetSafeNormal() * KnockbackSpeed, true, false);
 }
 
 void ABattleCharacter::Equip(AEquipment* Equipment, bool bUpdateStats)

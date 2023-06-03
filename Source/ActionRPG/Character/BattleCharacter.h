@@ -17,7 +17,8 @@ class UTargetSelectorComponent;
 class AEquipment;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FGenericCharacterDelegate, class ABattleCharacter* /*this*/);
-DECLARE_MULTICAST_DELEGATE_ThreeParams(FCharacterDamageDelegate, class ABattleCharacter* /*this*/, struct FDamageEvent const& /*DamageEvent*/, float /*RealDamageAmount*/);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FTakeMeleeDamageDelegate, class ABattleCharacter*, Attacker, struct FMeleeDamageEvent const& , DamageEvent, float, RealDamageAmount);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FAttackHitDelegate, class ABattleCharacter*, Attacker, const FDamageEvent&, DamageEvent);
 
 UENUM(BlueprintType)
 enum class ECharacterOutlineType : uint8
@@ -86,14 +87,24 @@ public: // Attack
 
 	void OnWeaponHit(class AWeapon* Weapon, const TArray<FHitResult>& HitResults);
 
+public: // Attack
+	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category = "Battle Character|Attack")
+	FAttackHitDelegate OnAttackHitDelegate;
+
 public: // Dodge
 	bool ExecuteDodge(const FVector& Direction);
 
-protected:
+protected: // Dodge
 	void OnDodgeFinished(ACharacter* DodgingActor);
 
 public: // Damage
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser);
+
+	UFUNCTION(BlueprintCallable, Category = "Battle Character|Damage")
+	void Knockback(AActor* HitActor, float Speed);
+	
+	void StartHitStop(float Seconds, float TimeDilation = 0.1f);
+	void EndHitStop();
 
 protected: // Damage
 	void PlayDamageMontage(struct FDamageEvent const& DamageEvent, AActor* DamageCauser);
@@ -101,7 +112,9 @@ protected: // Damage
 	void OnInvincibleFrameEnd();
 
 public: // Damage
-	FCharacterDamageDelegate OnDamageDelegate;
+	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category = "Battle Character|Damage")
+	FTakeMeleeDamageDelegate OnTakeMeleeDamageDelegate;
+
 	FGenericCharacterDelegate OnDeadDelegate;
 
 private: // Damage
@@ -116,7 +129,11 @@ private: // Damage
 	UPROPERTY(EditDefaultsOnly, Category = "Battle Character|Damage", meta = (AllowPrivateAccess = "true"))
 	float InvincibleFrame = 0.3f;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle Character|Damage", meta = (AllowPrivateAccess = "true"))
+	bool bKnockback = false;
+
 	FTimerHandle InvincibleFrameHandle;
+	FTimerHandle HitStopHandle;
 	bool bCanTakeDamage = true;
 
 public: // Dead
@@ -129,6 +146,8 @@ protected: // Dead
 private: // Dead
 	UPROPERTY(EditDefaultsOnly, Category = "Battle Character|Dead", meta = (AllowPrivateAccess = "true"))
 	UAnimMontage* DeadMontage;
+	UPROPERTY(EditDefaultsOnly, Category = "Battle Character|Dead", meta = (AllowPrivateAccess = "true"))
+	float DeadKnockbackSpeed = 600.f;
 
 public: // Equipment
 	UFUNCTION(BlueprintCallable, Category = "Battle Character|Equipment")

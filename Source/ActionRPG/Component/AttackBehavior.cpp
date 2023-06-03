@@ -18,6 +18,11 @@ UAttackBehavior::UAttackBehavior()
 	// ...
 }
 
+void UAttackBehavior::RegisterComboList(const TArray<FAttackData>& NewComboList)
+{
+	ComboList = NewComboList;
+}
+
 
 // Called when the game starts
 void UAttackBehavior::BeginPlay()
@@ -66,14 +71,14 @@ void UAttackBehavior::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 	//}
 }
 
-bool UAttackBehavior::RegisterCombo()
+bool UAttackBehavior::ComboAttack()
 {
 	if (!ComboList.IsValidIndex(ComboIndex) || !bIsWithinComboWindow) {
 		return false;
 	}
 
 	const FAttackData& Attack = ComboList[ComboIndex];
-	if (RegisterAttack(Attack))
+	if (RegisterAttackCommand(Attack))
 	{
 		if (++ComboIndex >= ComboList.Num())
 		{
@@ -122,7 +127,7 @@ void UAttackBehavior::ResetParameters()
 	bCanStartNextAttack = true;
 }
 
-bool UAttackBehavior::RegisterAttack(const FAttackData& Attack)
+bool UAttackBehavior::RegisterAttackCommand(const FAttackData& Attack)
 {
 	if (IsLocked())
 	{
@@ -183,4 +188,10 @@ void UAttackBehavior::OnAnimNotifyAttackEnd()
 {
 	bCanStartNextAttack = true;
 	GetMovementComponent()->SetJumpAllowed(true);
+}
+
+FAttackData UAttackBehavior::GetCurrentAttack() const
+{
+	static FAttackData DefaultsResult{};
+	return CurrentAttack.IsValid() ? *CurrentAttack : DefaultsResult;
 }

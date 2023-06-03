@@ -5,6 +5,8 @@
 #include "CoreMinimal.h"
 #include "BattleData.generated.h"
 
+#define MELEE_DAMAGE_EVENT_CLASS_ID 1000
+
 USTRUCT(BlueprintType)
 struct FAttackData
 {
@@ -16,6 +18,27 @@ struct FAttackData
 	float AnimPlayRate = 1.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float DamageModifier = 1.0f;
-	UPROPERTY(EditAnywhere)
+	// Hit-stop in seconds
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float HitStop = 0.0f;
+	// Time dilation durint hit-stop
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float HitStopTimeDilation = 0.1f;
+	// Knockback velocity (relative to the attacker)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FVector Knockback;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FRotator VFXOrientation;
+};
+
+USTRUCT(BlueprintType)
+struct FMeleeDamageEvent : public FPointDamageEvent
+{
+	GENERATED_BODY()
+
+	/** ID for this class. NOTE this must be unique for all damage events. */
+	static const int32 ClassID = MELEE_DAMAGE_EVENT_CLASS_ID;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FAttackData AttackData;
 };

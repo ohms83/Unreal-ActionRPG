@@ -20,10 +20,22 @@ public:
 	UAttackBehavior();
 
 	UFUNCTION(BlueprintCallable)
-	bool RegisterCombo();
+	void RegisterComboList(const TArray<FAttackData>& NewComboList);
 
+	/**
+	* Try registering the next attack command from the combo list.
+	* @return true if the combo command can be resitered; otherwise, false.
+	*/
 	UFUNCTION(BlueprintCallable)
-	bool RegisterAttack(const FAttackData& NextAttack);
+	bool ComboAttack();
+
+	/**
+	* Try registering the next attack command. The attack will be stored in the command queue
+	* and only be executed when ready.
+	* @return true if the combo command can be resitered; otherwise, false.
+	*/
+	UFUNCTION(BlueprintCallable)
+	bool RegisterAttackCommand(const FAttackData& NextAttack);
 
 	UFUNCTION(BlueprintCallable)
 	bool IsAttacking() const { return CurrentAttack.IsValid(); }
@@ -41,6 +53,9 @@ public:
 	// An event handler that will be triggered from the Animation Blueprint when received an AnimNotify_AttackEnd
 	UFUNCTION(BlueprintCallable)
 	void OnAnimNotifyAttackEnd();
+
+	UFUNCTION(BlueprintCallable)
+	FAttackData GetCurrentAttack() const;
 
 protected:
 	// Called when the game starts
