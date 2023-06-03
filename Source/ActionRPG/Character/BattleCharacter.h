@@ -99,9 +99,6 @@ protected: // Dodge
 
 public: // Damage
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser);
-
-	UFUNCTION(BlueprintCallable, Category = "Battle Character|Damage")
-	void Knockback(AActor* HitActor, float Speed);
 	
 	void StartHitStop(float Seconds, float TimeDilation = 0.1f);
 	void EndHitStop();
@@ -129,12 +126,26 @@ private: // Damage
 	UPROPERTY(EditDefaultsOnly, Category = "Battle Character|Damage", meta = (AllowPrivateAccess = "true"))
 	float InvincibleFrame = 0.3f;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle Character|Damage", meta = (AllowPrivateAccess = "true"))
-	bool bKnockback = false;
-
 	FTimerHandle InvincibleFrameHandle;
 	FTimerHandle HitStopHandle;
 	bool bCanTakeDamage = true;
+
+public:
+	UFUNCTION(BlueprintCallable, Category = "Battle Character|Damage")
+	void Knockback(AActor* Attacker, const FVector2D& RelativeDirection, float Speed);
+	// Compute a knockback direction in world-space
+	UFUNCTION(BlueprintCallable, Category = "Battle Character|Damage")
+	FVector ConmputeKnockbackDirection(AActor* HitActor, const FVector2D& RelativeDirection);
+
+protected:
+	// Periodically check whether the knockback has ended and reset bKnockback flag.
+	void CheckKnockbackEnd();
+
+private:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle Character|Damage", meta = (AllowPrivateAccess = "true"))
+	bool bKnockback = false;
+
+	FTimerHandle CheckKnockbackTimerHandle;
 
 public: // Dead
 	UFUNCTION(BlueprintCallable, Category = "Battle Character|Dead")
@@ -183,4 +194,6 @@ public:
 	void SelectTarget(AActor* NextTarget);
 	UFUNCTION(BlueprintCallable, Category = "Battle Character|Target")
 	AActor* GetSelectedTarget() const;
+	UFUNCTION(BlueprintCallable, Category = "Battle Character|Target")
+	bool IsBeingTargetted() const;
 };

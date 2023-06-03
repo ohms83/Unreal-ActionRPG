@@ -26,7 +26,9 @@ struct FAttackData
 	float HitStopTimeDilation = 0.1f;
 	// Knockback velocity (relative to the attacker)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FVector Knockback;
+	FVector2D KnockbackDirection = FVector2D::ZeroVector;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float KnockbackSpeed = 0;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FRotator VFXOrientation;
 };
@@ -41,4 +43,7 @@ struct FMeleeDamageEvent : public FPointDamageEvent
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FAttackData AttackData;
+
+	virtual int32 GetTypeID() const override { return FMeleeDamageEvent::ClassID; };
+	virtual bool IsOfType(int32 InID) const override;
 };

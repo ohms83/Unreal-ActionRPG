@@ -28,8 +28,6 @@ void AGameCharacter::BeginPlay()
 void AGameCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
-	UpdateAnimationProperties();
 }
 
 // Called to bind functionality to input
@@ -37,14 +35,4 @@ void AGameCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
-}
-
-void AGameCharacter::UpdateAnimationProperties()
-{
-	const auto MovementComp = GetCharacterMovement();
-	if (AnimInstance.IsValid())
-	{
-		AnimInstance->MoveSpeed = MovementComp->Velocity.Size();
-		AnimInstance->bIsFalling = MovementComp->IsFalling();
-	}
 }

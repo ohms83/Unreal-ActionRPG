@@ -216,14 +216,19 @@ float ABattleCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Damag
 	// Hit-stop
 	float HitStop = 0;
 	float HitStopTimeDilation = 0;
+	// Knockback
+	FVector2D KnockbackDirection = FVector2D::ZeroVector;
+	float KnockbackSpeed = 0;
 
-	if (DamageEvent.ClassID == MELEE_DAMAGE_EVENT_CLASS_ID)
+	if (DamageEvent.IsOfType(MELEE_DAMAGE_EVENT_CLASS_ID))
 	{
 		const FMeleeDamageEvent& MeleeDamageEvent = static_cast<const FMeleeDamageEvent&>(DamageEvent);
 		const FAttackData& AttackData = MeleeDamageEvent.AttackData;
 
 		HitStop = AttackData.HitStop;
 		HitStopTimeDilation = AttackData.HitStopTimeDilation;
+		KnockbackDirection = AttackData.KnockbackDirection;
+		KnockbackSpeed = AttackData.KnockbackSpeed;
 
 		UE_LOG(LogTemp, Log, TEXT("HitStop=%.2f HitStopTimeDilation=%.2f"), HitStop, HitStopTimeDilation);
 		OnTakeMeleeDamageDelegate.Broadcast(this, MeleeDamageEvent, RealDamageAmount);
@@ -241,7 +246,16 @@ float ABattleCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Damag
 	}
 	else
 	{
-		PlayDamageMontage(DamageEvent, DamageCauser);
+		// Knockback's implementation is on held until a better solution has come up.
+		/*if (KnockbackSpeed > 0)
+		{
+			AActor* Attacker = IsValid(DamageCauser) ? DamageCauser->GetOwner() : nullptr;
+			Knockback(Attacker, KnockbackDirection, KnockbackSpeed);
+		}
+		else*/
+		{
+			PlayDamageMontage(DamageEvent, DamageCauser);
+		}
 	}
 
 	PlayHitFX(DamageEvent, DamageCauser);
@@ -256,33 +270,6 @@ float ABattleCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Damag
 	);
 
 	return RealDamageAmount;
-}
-
-void ABattleCharacter::Knockback(AActor* HitActor, float Speed)
-{
-	FVector KnockbackDirection;
-
-	if (IsValid(HitActor))
-	{
-		KnockbackDirection = (GetActorLocation() - HitActor->GetActorLocation()).GetSafeNormal2D();
-	}
-	else
-	{
-		KnockbackDirection = -GetActorForwardVector();
-	}
-
-	KnockbackDirection.Z = FMath::Tan(FMath::DegreesToRadians(30.f));
-
-	UE_LOG(LogTemp, Log, TEXT("KnockbackDirection=%s"), *KnockbackDirection.ToString());
-	LaunchCharacter(KnockbackDirection.GetSafeNormal() * Speed, true, false);
-
-	UCharacterMovementComponent* MoveComp = Cast<UCharacterMovementComponent>(GetMovementComponent());
-	if (IsValid(MoveComp))
-	{
-		MoveComp->GroundFriction = 0;
-	}
-
-	bKnockback = true;
 }
 
 void ABattleCharacter::StartHitStop(float Seconds, float TimeDilation)
@@ -385,6 +372,70 @@ void ABattleCharacter::OnInvincibleFrameEnd()
 	bCanTakeDamage = true;
 }
 
+void ABattleCharacter::Knockback(AActor* Attacker, const FVector2D& RelativeDirection, float Speed)
+{
+	FVector KnockbackDirection = ConmputeKnockbackDirection(Attacker, RelativeDirection);
+	LaunchCharacter(KnockbackDirection.GetSafeNormal() * Speed, true, false);
+
+	UCharacterMovementComponent* MoveComp = Cast<UCharacterMovementComponent>(GetMovementComponent());
+	if (IsValid(MoveComp))
+	{
+		MoveComp->GroundFriction = 0;
+	}
+
+	bKnockback = true;
+
+	GetWorld()->GetTimerManager().SetTimer(
+		CheckKnockbackTimerHandle,
+		this,
+		&ABattleCharacter::CheckKnockbackEnd,
+		0.1f, true, 0.1f
+	);
+}
+
+FVector ABattleCharacter::ConmputeKnockbackDirection(AActor* Attacker, const FVector2D& RelativeDirection)
+{
+	FVector KnockbackDirection = { RelativeDirection.X, 0, RelativeDirection.Y };
+
+	if (IsValid(Attacker))
+	{
+		FVector PushVector = (GetActorLocation() - Attacker->GetActorLocation()).GetSafeNormal2D();
+		FRotator PushRotation = PushVector.Rotation();
+		KnockbackDirection = PushRotation.RotateVector(KnockbackDirection).GetSafeNormal();
+	}
+	else
+	{
+		KnockbackDirection = -GetActorForwardVector();
+		KnockbackDirection.Z = FMath::Tan(FMath::DegreesToRadians(30.f));
+		KnockbackDirection.Normalize();
+	}
+
+	return KnockbackDirection;
+}
+
+void ABattleCharacter::CheckKnockbackEnd()
+{
+	const auto CharMovement = GetCharacterMovement();
+	bool bClearTimer = true;
+
+	if (!IsDead() && IsValid(CharMovement))
+	{
+		if (!CharMovement->IsFalling())
+		{
+			CharMovement->GroundFriction = 8.0f;
+			bKnockback = false;
+		}
+		else
+		{
+			bClearTimer = false;
+		}
+	}
+
+	if (bClearTimer) {
+		GetWorld()->GetTimerManager().ClearTimer(CheckKnockbackTimerHandle);
+	}
+}
+
 void ABattleCharacter::OnDead(FDamageEvent const& DamageEvent, AActor* DamageCauser)
 {
 	OnDeadDelegate.Broadcast(this);
@@ -404,7 +455,11 @@ void ABattleCharacter::OnDead(FDamageEvent const& DamageEvent, AActor* DamageCau
 	else
 	{
 		AActor* Attacker = IsValid(DamageCauser) ? DamageCauser->GetOwner() : nullptr;
-		Knockback(Attacker, DeadKnockbackSpeed);
+		FVector2D KnockbackDirection{
+			FMath::Cos(FMath::DegreesToRadians(30.f)),
+			FMath::Sin(FMath::DegreesToRadians(30.f))
+		};
+		Knockback(Attacker, KnockbackDirection, DeadKnockbackSpeed);
 		AnimInstance->Montage_Stop(0.1f, nullptr);
 	}
 }
@@ -529,4 +584,9 @@ void ABattleCharacter::SelectTarget(AActor* NextTarget)
 AActor* ABattleCharacter::GetSelectedTarget() const
 {
 	return TargetSelector->GetSelectedTarget();
+}
+
+bool ABattleCharacter::IsBeingTargetted() const
+{
+	return TargetSelector->GetActorTargettingOwner() != nullptr;
 }
