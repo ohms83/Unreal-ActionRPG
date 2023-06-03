@@ -2,6 +2,7 @@
 
 
 #include "GameCharacterAnimInstance.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 DEFINE_LOG_CATEGORY(LogGameCharacterAnimInstance);
 
@@ -12,6 +13,13 @@ void UGameCharacterAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	APawn* PawnOwner = TryGetPawnOwner();
 	if (!IsValid(PawnOwner)) {
 		return;
+	}
+
+	auto MoveComp = PawnOwner->GetMovementComponent();
+	if (IsValid(MoveComp))
+	{
+		MoveSpeed = MoveComp->Velocity.Size();
+		bIsFalling = MoveComp->IsFalling();
 	}
 
 	PawnOrientation = PawnOwner->GetActorRotation();
