@@ -31,6 +31,8 @@ struct FAttackData
 	float KnockbackSpeed = 0;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FRotator VFXOrientation;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSubclassOf<UCameraShakeBase> CameraShakeFX = nullptr;
 };
 
 USTRUCT(BlueprintType)

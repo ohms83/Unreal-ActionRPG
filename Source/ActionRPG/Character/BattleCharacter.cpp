@@ -229,8 +229,8 @@ float ABattleCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Damag
 		HitStopTimeDilation = AttackData.HitStopTimeDilation;
 		KnockbackDirection = AttackData.KnockbackDirection;
 		KnockbackSpeed = AttackData.KnockbackSpeed;
-
 		UE_LOG(LogTemp, Log, TEXT("HitStop=%.2f HitStopTimeDilation=%.2f"), HitStop, HitStopTimeDilation);
+		
 		OnTakeMeleeDamageDelegate.Broadcast(this, MeleeDamageEvent, RealDamageAmount);
 	}
 
@@ -342,15 +342,16 @@ void ABattleCharacter::PlayDamageMontage(FDamageEvent const& DamageEvent, AActor
 
 void ABattleCharacter::PlayHitFX(FDamageEvent const& DamageEvent, AActor* DamageCauser)
 {
-	if (DamageEvent.IsOfType(FPointDamageEvent::ClassID))
+	if (DamageEvent.IsOfType(FMeleeDamageEvent::ClassID))
 	{
-		const auto& PointDamage = static_cast<const FPointDamageEvent&>(DamageEvent);
+		const auto& MeleeDamage = static_cast<const FMeleeDamageEvent&>(DamageEvent);
 		AWeapon* HitWeapon = Cast<AWeapon>(DamageCauser);
+		const FAttackData& AttackData = MeleeDamage.AttackData;
 
 		if (IsValid(HitWeapon))
 		{
 			const FHitVFX& HitVFX = HitWeapon->GetHitVFX();
-			const FHitResult& HitInfo = PointDamage.HitInfo;
+			const FHitResult& HitInfo = MeleeDamage.HitInfo;
 			FRotator Orientation = (HitInfo.TraceEnd - HitInfo.TraceStart).Rotation();
 			//FRotator Orientation = HitInfo.Normal.Rotation();
 			UNiagaraSystem* VFX = const_cast<UNiagaraSystem*>(HitVFX.ParticleTemplate);
@@ -358,10 +359,21 @@ void ABattleCharacter::PlayHitFX(FDamageEvent const& DamageEvent, AActor* Damage
 			UNiagaraFunctionLibrary::SpawnSystemAtLocation(
 				this,
 				VFX,
-				PointDamage.HitInfo.Location,
+				MeleeDamage.HitInfo.Location,
 				//Orientation + HitVFX.Orientation,
 				HitVFX.Orientation,
 				HitVFX.Scale
+			);
+		}
+
+		if (IsValid(AttackData.CameraShakeFX))
+		{
+			UGameplayStatics::PlayWorldCameraShake(
+				this,
+				AttackData.CameraShakeFX,
+				GetActorLocation(),
+				0,
+				500.f
 			);
 		}
 	}
