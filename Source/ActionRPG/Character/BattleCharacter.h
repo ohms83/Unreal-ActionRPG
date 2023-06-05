@@ -16,7 +16,8 @@ class UDodgeBehavior;
 class UTargetSelectorComponent;
 class AEquipment;
 
-DECLARE_MULTICAST_DELEGATE_OneParam(FGenericCharacterDelegate, class ABattleCharacter* /*this*/);
+DECLARE_MULTICAST_DELEGATE_OneParam(FGenericCharacterDelegate, class ABattleCharacter* /*ThisCharacter*/);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FTakeMeleeDamageDelegate, class ABattleCharacter*, Attacker, struct FMeleeDamageEvent const& , DamageEvent, float, RealDamageAmount);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FAttackHitDelegate, class ABattleCharacter*, Attacker, const FDamageEvent&, DamageEvent);
 
@@ -112,8 +113,6 @@ public: // Damage
 	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category = "Battle Character|Damage")
 	FTakeMeleeDamageDelegate OnTakeMeleeDamageDelegate;
 
-	FGenericCharacterDelegate OnDeadDelegate;
-
 private: // Damage
 	UPROPERTY(EditDefaultsOnly, Category = "Battle Character|Damage", meta = (AllowPrivateAccess = "true"))
 	TArray<UAnimMontage*> FrontalDamageMontages;
@@ -154,6 +153,13 @@ public: // Dead
 protected: // Dead
 	void PlayDeadMontage();
 	virtual void OnDead(FDamageEvent const& DamageEvent, AActor* DamageCauser);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Battle Character|Dead", meta = (DisplayName = "On Dead"))
+	void OnDeadEvent_BP(FDamageEvent const& DamageEvent, AActor* DamageCauser);
+
+public:
+	FGenericCharacterDelegate OnDeadDelegate;
+
 private: // Dead
 	UPROPERTY(EditDefaultsOnly, Category = "Battle Character|Dead", meta = (AllowPrivateAccess = "true"))
 	UAnimMontage* DeadMontage;
@@ -173,6 +179,8 @@ public: // Equipment
 	*/
 	UFUNCTION(BlueprintCallable, Category = "Battle Character|Equipment")
 	void Unequip(AEquipment* Equipment, bool bDestroy = true, bool bUpdateStats = true);
+	UFUNCTION(BlueprintCallable, Category = "Battle Character|Equipment")
+	void UnequipAll(bool bDestroy = true, bool bUpdateStats = true);
 
 protected:
 	// An internal function that contains the logics for equiping weapon

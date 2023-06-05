@@ -451,6 +451,7 @@ void ABattleCharacter::CheckKnockbackEnd()
 void ABattleCharacter::OnDead(FDamageEvent const& DamageEvent, AActor* DamageCauser)
 {
 	OnDeadDelegate.Broadcast(this);
+	OnDeadEvent_BP(DamageEvent, DamageCauser);
 
 	AttackBehavior->LockComponent(this);
 	DodgeBehavior->LockComponent(this);
@@ -525,10 +526,6 @@ void ABattleCharacter::Equip(AEquipment* Equipment, bool bUpdateStats)
 
 void ABattleCharacter::Unequip(AEquipment* Equipment, bool bDestroy, bool bUpdateStats)
 {
-	if (IsDead()) {
-		return;
-	}
-
 	if (!IsValid(Equipment) || Equipment->GetEquipType() == EEquipmentType::None)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Invalid equipment!"));
@@ -561,8 +558,19 @@ void ABattleCharacter::Unequip(AEquipment* Equipment, bool bDestroy, bool bUpdat
 	}
 
 	Equipment->SetOwner(nullptr);
+	UE_LOG(LogTemp, Log, TEXT("Unequip equipment=%s bDestroy=%s"),
+		*Equipment->GetName(), bDestroy ? TEXT("true") : TEXT("false"));
 	if (bDestroy) {
+		//UE_LOG(LogTemp, Log, TEXT("Destroying equipment=%s"), *Equipment->GetName());
 		Equipment->Destroy();
+	}
+}
+
+void ABattleCharacter::UnequipAll(bool bDestroy, bool bUpdateStats)
+{
+	while (EquipmentList.Num() > 0)
+	{
+		Unequip(EquipmentList.begin()->Value, bDestroy, bUpdateStats);
 	}
 }
 
