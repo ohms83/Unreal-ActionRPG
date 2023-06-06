@@ -99,6 +99,20 @@ void ABattleCharacter::SetTeam(ECharacterTeam NewTeam)
 	Team = NewTeam;
 }
 
+bool ABattleCharacter::IsSameTeam(AActor* const OtherActor) const
+{
+	if (!IsValid(OtherActor)) {
+		return false;
+	}
+
+	ABattleCharacter* OtherCharacter = Cast<ABattleCharacter>(OtherActor);
+	if (!IsValid(OtherCharacter)) {
+		OtherCharacter = Cast<ABattleCharacter>(OtherActor->GetOwner());
+	}
+
+	return IsValid(OtherCharacter) && OtherCharacter->GetTeam() == GetTeam();
+}
+
 float ABattleCharacter::CalculateDamage(ABattleCharacter* Attacker, ABattleCharacter* Defender)
 {
 	if (!IsValid(Attacker) || !IsValid(Defender)) {
@@ -276,7 +290,10 @@ float ABattleCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Damag
 
 bool ABattleCharacter::ShouldTakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) const
 {
-	return bCanTakeDamage && !IsDead() && Super::ShouldTakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
+	return bCanTakeDamage &&
+		!IsSameTeam(DamageCauser) &&
+		!IsDead() &&
+		Super::ShouldTakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
 }
 
 void ABattleCharacter::StartHitStop(float Seconds, float TimeDilation)
@@ -457,7 +474,10 @@ void ABattleCharacter::CheckKnockbackEnd()
 
 void ABattleCharacter::OnDead(FDamageEvent const& DamageEvent, AActor* DamageCauser)
 {
+	AActor* Attacker = IsValid(DamageCauser) ? DamageCauser->GetOwner() : nullptr;
+
 	OnDeadDelegate.Broadcast(this);
+	OnCharacterDeadDynamicDelegate.Broadcast(this, Cast<ABattleCharacter>(Attacker), DamageEvent);
 	OnDeadEvent_BP(DamageEvent, DamageCauser);
 
 	AttackBehavior->LockComponent(this);
@@ -474,7 +494,6 @@ void ABattleCharacter::OnDead(FDamageEvent const& DamageEvent, AActor* DamageCau
 	}
 	else
 	{
-		AActor* Attacker = IsValid(DamageCauser) ? DamageCauser->GetOwner() : nullptr;
 		FVector2D KnockbackDirection{
 			FMath::Cos(FMath::DegreesToRadians(30.f)),
 			FMath::Sin(FMath::DegreesToRadians(30.f))

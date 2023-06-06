@@ -18,8 +18,9 @@ class AEquipment;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FGenericCharacterDelegate, class ABattleCharacter* /*ThisCharacter*/);
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FTakeMeleeDamageDelegate, class ABattleCharacter*, Attacker, struct FMeleeDamageEvent const& , DamageEvent, float, RealDamageAmount);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FAttackHitDelegate, class ABattleCharacter*, Attacker, const FDamageEvent&, DamageEvent);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FCharacterDeadDynamicDelegate, class ABattleCharacter*, DeadCharacter, class ABattleCharacter*, Attacker, struct FDamageEvent const&, DamageEvent);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FTakeMeleeDamageDynamicDelegate, class ABattleCharacter*, Attacker, struct FMeleeDamageEvent const& , DamageEvent, float, RealDamageAmount);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FAttackHitDynamicDelegate, class ABattleCharacter*, Attacker, const FDamageEvent&, DamageEvent);
 
 UENUM(BlueprintType)
 enum class ECharacterOutlineType : uint8
@@ -73,6 +74,8 @@ public: // Stats
 	void SetTeam(ECharacterTeam NewTeam);
 	UFUNCTION(BlueprintCallable, Category = "Battle Character|Stats")
 	ECharacterTeam GetTeam() const { return Team; }
+	UFUNCTION(BlueprintCallable, Category = "Battle Character|Stats")
+	bool IsSameTeam(AActor* const OtherActor) const;
 
 	// TODO: Move to Battle Manager
 	static float CalculateDamage(ABattleCharacter* Attacker, ABattleCharacter* Defender);
@@ -99,7 +102,7 @@ public: // Attack
 
 public: // Attack
 	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category = "Battle Character|Attack")
-	FAttackHitDelegate OnAttackHitDelegate;
+	FAttackHitDynamicDelegate OnAttackHitDelegate;
 
 public: // Dodge
 	bool ExecuteDodge(const FVector& Direction);
@@ -121,7 +124,7 @@ protected: // Damage
 
 public: // Damage
 	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category = "Battle Character|Damage")
-	FTakeMeleeDamageDelegate OnTakeMeleeDamageDelegate;
+	FTakeMeleeDamageDynamicDelegate OnTakeMeleeDamageDelegate;
 
 private: // Damage
 	UPROPERTY(EditDefaultsOnly, Category = "Battle Character|Damage", meta = (AllowPrivateAccess = "true"))
@@ -167,7 +170,10 @@ protected: // Dead
 	UFUNCTION(BlueprintImplementableEvent, Category = "Battle Character|Dead", meta = (DisplayName = "On Dead"))
 	void OnDeadEvent_BP(FDamageEvent const& DamageEvent, AActor* DamageCauser);
 
-public:
+public: // Dead
+	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category = "Battle Character|Dead")
+	FCharacterDeadDynamicDelegate OnCharacterDeadDynamicDelegate;
+
 	FGenericCharacterDelegate OnDeadDelegate;
 
 private: // Dead
