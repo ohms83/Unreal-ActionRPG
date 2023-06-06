@@ -22,6 +22,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void RegisterComboList(const TArray<FAttackData>& NewComboList);
 
+	UFUNCTION(BlueprintCallable)
+	int32 GetMaxCombo() const;
+
 	/**
 	* Try registering the next attack command from the combo list.
 	* @return true if the combo command can be resitered; otherwise, false.
@@ -38,11 +41,11 @@ public:
 	bool RegisterAttackCommand(const FAttackData& NextAttack);
 
 	UFUNCTION(BlueprintCallable)
-	bool IsAttacking() const { return CurrentAttack.IsValid(); }
+	bool IsAttacking() const;
 
-	// Cancle the current attack.
+	// Cancel all the attacks
 	UFUNCTION(BlueprintCallable)
-	void CancleAttack();
+	void CancelAttack();
 
 	UFUNCTION(BlueprintCallable)
 	void SetCanStartNextAttack(bool bFlag) { bCanStartNextAttack = bFlag; }
@@ -60,6 +63,8 @@ public:
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
+
+	virtual void Lock_Internal() override;
 
 	bool PerformAttack(const FAttackData& NextAttack);
 

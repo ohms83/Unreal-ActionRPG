@@ -24,7 +24,7 @@ public:
 	* the other object, the function return false.
 	* @param Locker A pointer to the object that's calling this function.
 	*/
-	UFUNCTION(BlueprintCallable, Category = "Dodge Behavior")
+	UFUNCTION(BlueprintCallable, Category = "Game Actor Component")
 	bool LockComponent(const UObject* Locker);
 
 	/**
@@ -32,15 +32,24 @@ public:
 	* the given Locker, the function silently returns.
 	* @param Locker A pointer to the object that's calling this function.
 	*/
-	UFUNCTION(BlueprintCallable, Category = "Dodge Behavior")
+	UFUNCTION(BlueprintCallable, Category = "Game Actor Component")
 	void UnlockComponent(const UObject* Locker);
 
-	UFUNCTION(BlueprintCallable, Category = "Dodge Behavior")
+	UFUNCTION(BlueprintCallable, Category = "Game Actor Component")
 	bool IsLocked() const { return ComponentLocker.IsValid(); }
+
+	// Temporary locking the component for the specified seconds.
+	UFUNCTION(BlueprintCallable, Category = "Game Actor Component")
+	bool TempLock(const UObject* Locker, float Seconds);
 
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
+
+	// Child classes should override this to implement their own logics
+	virtual void Lock_Internal() {}
+
+	void ReleaseTempLock();
 
 public:	
 	// Called every frame
@@ -53,6 +62,7 @@ protected:
 private:
 	// An object that acquire a lock to this component.
 	TWeakObjectPtr<const UObject> ComponentLocker;
+	FTimerHandle TempLockTimerHandle;
 
 	UAnimInstance* _AnimInstance;
 	UCharacterMovementComponent* _MovementComp;

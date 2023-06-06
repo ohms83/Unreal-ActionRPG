@@ -9,3 +9,8 @@ AGameAIController::AGameAIController(const FObjectInitializer& ObjectInitializer
 {
 
 }
+
+void AGameAIController::ChangeState(EAIState NextState)
+{
+	State = NextState;
+}

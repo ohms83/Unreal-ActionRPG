@@ -57,7 +57,7 @@ void ABattleCharacter::OnJumped_Implementation()
 
 	if (GetCharacterMovement()->CanAttemptJump() && AnimInstance.IsValid())
 	{
-		AttackBehavior->CancleAttack();
+		AttackBehavior->CancelAttack();
 		AnimInstance->StopAllMontages(0.1f);
 	}
 }
@@ -94,6 +94,11 @@ void ABattleCharacter::SetStats(const FCharacterStats& NewStats, bool bUpdateSta
 	}
 }
 
+void ABattleCharacter::SetTeam(ECharacterTeam NewTeam)
+{
+	Team = NewTeam;
+}
+
 float ABattleCharacter::CalculateDamage(ABattleCharacter* Attacker, ABattleCharacter* Defender)
 {
 	if (!IsValid(Attacker) || !IsValid(Defender)) {
@@ -107,34 +112,19 @@ float ABattleCharacter::CalculateDamage(ABattleCharacter* Attacker, ABattleChara
 
 void ABattleCharacter::OnAnimNotifyAttackStart()
 {
+	if (AttackBehavior->IsLocked()) {
+		return;
+	}
 	AttackBehavior->OnAnimNotifyAttackStart();
 	DodgeBehavior->LockComponent(this);
-
-	AEquipment** WeaponPtr = EquipmentList.Find(EEquipmentType::Weapon);
-	if (WeaponPtr)
-	{
-		AWeapon* Weapon = Cast<AWeapon>(*WeaponPtr);
-		if (IsValid(Weapon))
-		{
-			Weapon->EnableTraceHit(true);
-		}
-	}
+	EnableTraceHit(true);
 }
 
 void ABattleCharacter::OnAnimNotifyAttackEnd()
 {
 	AttackBehavior->OnAnimNotifyAttackEnd();
 	DodgeBehavior->UnlockComponent(this);
-
-	AEquipment** WeaponPtr = EquipmentList.Find(EEquipmentType::Weapon);
-	if (WeaponPtr)
-	{
-		AWeapon* Weapon = Cast<AWeapon>(*WeaponPtr);
-		if (IsValid(Weapon))
-		{
-			Weapon->EnableTraceHit(false);
-		}
-	}
+	EnableTraceHit(false);
 }
 
 void ABattleCharacter::OnWeaponHit(AWeapon* Weapon, const TArray<FHitResult>& HitResults)
@@ -171,12 +161,25 @@ void ABattleCharacter::OnWeaponHit(AWeapon* Weapon, const TArray<FHitResult>& Hi
 	}
 }
 
-void ABattleCharacter::ExecuteAttack()
+void ABattleCharacter::EnableTraceHit(bool bEnable)
+{
+	AEquipment** WeaponPtr = EquipmentList.Find(EEquipmentType::Weapon);
+	if (WeaponPtr)
+	{
+		AWeapon* Weapon = Cast<AWeapon>(*WeaponPtr);
+		if (IsValid(Weapon))
+		{
+			Weapon->EnableTraceHit(bEnable);
+		}
+	}
+}
+
+bool ABattleCharacter::ExecuteAttack()
 {
 	if (IsDead()) {
-		return;
+		return false;
 	}
-	AttackBehavior->ComboAttack();
+	return AttackBehavior->ComboAttack();
 }
 
 bool ABattleCharacter::ExecuteDodge(const FVector& Direction)
@@ -187,7 +190,7 @@ bool ABattleCharacter::ExecuteDodge(const FVector& Direction)
 
 	if (DodgeBehavior->Dodge(Direction))
 	{
-		AttackBehavior->CancleAttack();
+		AttackBehavior->CancelAttack();
 		TargetSelector->LockComponent(this);
 		return true;
 	}
@@ -204,10 +207,6 @@ void ABattleCharacter::OnDodgeFinished(ACharacter* DodgingActor)
 
 float ABattleCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
-	if (!bCanTakeDamage || IsDead()) {
-		return 0;
-	}
-
 	float RealDamageAmount = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 	if (RealDamageAmount <= 0) {
 		return 0;
@@ -260,6 +259,9 @@ float ABattleCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Damag
 
 	PlayHitFX(DamageEvent, DamageCauser);
 
+	AttackBehavior->TempLock(this, 0.1f);
+	EnableTraceHit(false);
+
 	bCanTakeDamage = false;
 	GetWorld()->GetTimerManager().SetTimer(
 		InvincibleFrameHandle,
@@ -270,6 +272,11 @@ float ABattleCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Damag
 	);
 
 	return RealDamageAmount;
+}
+
+bool ABattleCharacter::ShouldTakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) const
+{
+	return bCanTakeDamage && !IsDead() && Super::ShouldTakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
 }
 
 void ABattleCharacter::StartHitStop(float Seconds, float TimeDilation)
@@ -558,10 +565,7 @@ void ABattleCharacter::Unequip(AEquipment* Equipment, bool bDestroy, bool bUpdat
 	}
 
 	Equipment->SetOwner(nullptr);
-	UE_LOG(LogTemp, Log, TEXT("Unequip equipment=%s bDestroy=%s"),
-		*Equipment->GetName(), bDestroy ? TEXT("true") : TEXT("false"));
 	if (bDestroy) {
-		//UE_LOG(LogTemp, Log, TEXT("Destroying equipment=%s"), *Equipment->GetName());
 		Equipment->Destroy();
 	}
 }

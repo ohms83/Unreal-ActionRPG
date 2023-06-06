@@ -127,9 +127,14 @@ void AThirdPersonController::OnInputAxisMoveForward(float AxisValue)
         return;
     }
 
+    APawn* ControlledPawn = GetPawn();
+    if (!IsValid(ControlledPawn)) {
+        return;
+    }
+
     FRotator Rotator(0, GetControlRotation().Yaw, 0);
     FVector Direction = bStrafeWalk ?
-        GetPawn()->GetActorForwardVector() :
+        ControlledPawn->GetActorForwardVector() :
         UKismetMathLibrary::GetForwardVector(Rotator);
 
     if (IsValid(AnimInstance))
@@ -138,7 +143,7 @@ void AThirdPersonController::OnInputAxisMoveForward(float AxisValue)
         AnimInstance->InputAxis.Y = AxisValue;
     }
 
-    GetPawn()->AddMovementInput(Direction, AxisValue);
+    ControlledPawn->AddMovementInput(Direction, AxisValue);
 }
 
 void AThirdPersonController::OnInputAxisMoveRight(float AxisValue)
@@ -147,9 +152,14 @@ void AThirdPersonController::OnInputAxisMoveRight(float AxisValue)
         return;
     }
 
+    APawn* ControlledPawn = GetPawn();
+    if (!IsValid(ControlledPawn)) {
+        return;
+    }
+
     FRotator Rotator(0, GetControlRotation().Yaw, 0);
     FVector Direction = bStrafeWalk ? 
-        GetPawn()->GetActorRightVector() :
+        ControlledPawn->GetActorRightVector() :
         UKismetMathLibrary::GetRightVector(Rotator);
 
     if (IsValid(AnimInstance)) 
@@ -158,7 +168,7 @@ void AThirdPersonController::OnInputAxisMoveRight(float AxisValue)
         AnimInstance->InputAxis.X = AxisValue;
     }
 
-    GetPawn()->AddMovementInput(Direction, AxisValue);
+    ControlledPawn->AddMovementInput(Direction, AxisValue);
 }
 
 void AThirdPersonController::OnInputTurn(float AxisValue)

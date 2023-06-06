@@ -65,3 +65,11 @@ struct FCharacterStats
 
 	float GetHpPercent() const;
 };
+
+UENUM(BlueprintType)
+enum class ECharacterTeam : uint8
+{
+	None	UMETA(DisplayName = "None"),
+	Player	UMETA(DisplayName = "Player"),
+	Enemy	UMETA(DisplayName = "Enemy"),
+};

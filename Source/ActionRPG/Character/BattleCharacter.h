@@ -57,6 +57,8 @@ public:
 private: // Stats
 	UPROPERTY(EditAnywhere, Category = "Battle Character")
 	FCharacterStats Stats;
+	UPROPERTY(EditAnywhere, Category = "Battle Character")
+	ECharacterTeam Team = ECharacterTeam::None;
 
 public: // Stats
 	UFUNCTION(BlueprintCallable, Category = "Battle Character|Stats")
@@ -66,6 +68,11 @@ public: // Stats
 	const FCharacterStats& GetStats() const;
 	UFUNCTION(BlueprintCallable, Category = "Battle Character|Stats")
 	void SetStats(const FCharacterStats& NewStats, bool bUpdateStats = true);
+
+	UFUNCTION(BlueprintCallable, Category = "Battle Character|Stats")
+	void SetTeam(ECharacterTeam NewTeam);
+	UFUNCTION(BlueprintCallable, Category = "Battle Character|Stats")
+	ECharacterTeam GetTeam() const { return Team; }
 
 	// TODO: Move to Battle Manager
 	static float CalculateDamage(ABattleCharacter* Attacker, ABattleCharacter* Defender);
@@ -79,7 +86,8 @@ public: // Components
 	UTargetSelectorComponent* TargetSelector = nullptr;
 
 public: // Attack
-	void ExecuteAttack();
+	UFUNCTION(BlueprintCallable, Category = "Battle Character|Attack")
+	bool ExecuteAttack();
 
 	UFUNCTION(BlueprintCallable, Category = "Battle Character|Attack")
 	void OnAnimNotifyAttackStart();
@@ -87,6 +95,7 @@ public: // Attack
 	void OnAnimNotifyAttackEnd();
 
 	void OnWeaponHit(class AWeapon* Weapon, const TArray<FHitResult>& HitResults);
+	void EnableTraceHit(bool bEnable);
 
 public: // Attack
 	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category = "Battle Character|Attack")
@@ -100,6 +109,7 @@ protected: // Dodge
 
 public: // Damage
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser);
+	virtual bool ShouldTakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) const override;
 	
 	void StartHitStop(float Seconds, float TimeDilation = 0.1f);
 	void EndHitStop();
@@ -197,7 +207,7 @@ protected: // Equipment
 
 	FDelegateHandle WeaponHitDelegate;
 
-public:
+public: // Target
 	UFUNCTION(BlueprintCallable, Category = "Battle Character|Target")
 	void SelectTarget(AActor* NextTarget);
 	UFUNCTION(BlueprintCallable, Category = "Battle Character|Target")

@@ -16,6 +16,23 @@ UGameActorComponent::UGameActorComponent()
 }
 
 
+bool UGameActorComponent::TempLock(const UObject* Locker, float Seconds)
+{
+	if (LockComponent(Locker))
+	{
+		GetWorld()->GetTimerManager().SetTimer(
+			TempLockTimerHandle,
+			this,
+			&UGameActorComponent::ReleaseTempLock,
+			Seconds,
+			false
+		);
+
+		return true;
+	}
+	return false;
+}
+
 // Called when the game starts
 void UGameActorComponent::BeginPlay()
 {
@@ -33,6 +50,11 @@ void UGameActorComponent::BeginPlay()
 			_AnimInstance = Cast<UAnimInstance>(TempMesh->GetAnimInstance());
 		}
 	}
+}
+
+void UGameActorComponent::ReleaseTempLock()
+{
+	UnlockComponent(ComponentLocker.Get());
 }
 
 // Called every frame
@@ -60,6 +82,7 @@ bool UGameActorComponent::LockComponent(const UObject* Locker)
 		return false;
 	}
 	ComponentLocker = Locker;
+	Lock_Internal();
 	return true;
 }
 
@@ -68,5 +91,6 @@ void UGameActorComponent::UnlockComponent(const UObject* Locker)
 	if (ComponentLocker.IsValid() && ComponentLocker == Locker)
 	{
 		ComponentLocker.Reset();
+		TempLockTimerHandle.Invalidate();
 	}
 }

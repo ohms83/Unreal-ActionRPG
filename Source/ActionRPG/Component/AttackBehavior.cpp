@@ -23,6 +23,11 @@ void UAttackBehavior::RegisterComboList(const TArray<FAttackData>& NewComboList)
 	ComboList = NewComboList;
 }
 
+int32 UAttackBehavior::GetMaxCombo() const
+{
+	return ComboList.Num();
+}
+
 
 // Called when the game starts
 void UAttackBehavior::BeginPlay()
@@ -30,6 +35,11 @@ void UAttackBehavior::BeginPlay()
 	Super::BeginPlay();
 
 	// ...
+}
+
+void UAttackBehavior::Lock_Internal()
+{
+	CancelAttack();
 }
 
 
@@ -61,13 +71,15 @@ void UAttackBehavior::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 	}
 	else
 	{
-		bCanStartNextAttack = true;
+		/*ComboIndex = 0;
+		bCanStartNextAttack = true;*/
+		ResetParameters();
 	}
 
 	//auto MovementComp = GetMovementComponent();
 	//if (MovementComp.IsValid() && MovementComp->IsFalling())
 	//{
-	//	CancleAttack();
+	//	CancelAttack();
 	//}
 }
 
@@ -122,9 +134,11 @@ void UAttackBehavior::ResetParameters()
 {
 	CurrentAttack.Reset();
 	ComboIndex = 0;
-	ComboTimerHandle.Invalidate();
 	bIsWithinComboWindow = true;
 	bCanStartNextAttack = true;
+
+	GetWorld()->GetTimerManager().ClearTimer(ComboTimerHandle);
+	ComboTimerHandle.Invalidate();
 }
 
 bool UAttackBehavior::RegisterAttackCommand(const FAttackData& Attack)
@@ -145,13 +159,19 @@ bool UAttackBehavior::RegisterAttackCommand(const FAttackData& Attack)
 	return true;
 }
 
-void UAttackBehavior::CancleAttack()
+bool UAttackBehavior::IsAttacking() const
 {
-	// TODO: Stop playing montage
+	bool bIsAttacking = CurrentAttack.IsValid() || PendingAttacks.Num() > 0;
+	return bIsAttacking;
+}
+
+void UAttackBehavior::CancelAttack()
+{
 	auto AnimInstance = GetAnimInstance();
 	if (CurrentAttack.IsValid() && AnimInstance.IsValid()) {
 		AnimInstance->Montage_Stop(0.1f, CurrentAttack->AttackMontage);
 	}
+	PendingAttacks.Empty();
 	ResetParameters();
 }
 
