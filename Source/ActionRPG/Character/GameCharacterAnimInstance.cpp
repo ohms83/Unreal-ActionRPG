@@ -20,10 +20,11 @@ void UGameCharacterAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	{
 		MoveSpeed = MoveComp->Velocity.Size();
 		bIsFalling = MoveComp->IsFalling();
+		PawnMoveDirection = MoveComp->Velocity.GetSafeNormal();
 	}
 
 	PawnOrientation = PawnOwner->GetActorRotation();
-	PawnMoveDirection = PawnOwner->GetLastMovementInputVector();
+	//PawnMoveDirection = PawnOwner->GetLastMovementInputVector();
 }
 
 void UGameCharacterAnimInstance::BroadcastOnEnterState(const FString& StateName)
