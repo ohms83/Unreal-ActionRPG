@@ -74,7 +74,8 @@ void UTargetSelectorComponent::SelectTarget(AActor* NextTarget)
 		return;
 	}
 
-	SetComponentTickEnabled(IsValid(NextTarget));
+	const bool bValidTarget = IsValid(NextTarget);
+	SetComponentTickEnabled(bValidTarget);
 
 	/*APawn* OwnerPawn = Cast<APawn>(GetOwner());
 	AThirdPersonController* OwnerController = Cast<AThirdPersonController>(OwnerPawn->GetController());
@@ -83,7 +84,7 @@ void UTargetSelectorComponent::SelectTarget(AActor* NextTarget)
 		OwnerController->SetStrafeWalk(bValidTarget);
 	}*/
 
-	if (IsValid(NextTarget))
+	if (bValidTarget)
 	{
 		SelectTarget_Internal(NextTarget);
 	}
