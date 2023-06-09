@@ -6,17 +6,14 @@
 #include "ActionRPG/Character/GameCharacterAnimInstance.h"
 #include "ActionRPG/Component/AttackBehavior.h"
 #include "ActionRPG/Component/DodgeBehavior.h"
+#include "ActionRPG/Component/TargetSelectorComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 
 void ABattleCharacterController::BeginPlay()
 {
-    const auto aPawn = GetPawn();
-    if (!IsValid(aPawn)) {
-        return;
-    }
-
-    AttackBehavior = Cast<UAttackBehavior>(aPawn->GetComponentByClass(UAttackBehavior::StaticClass()));
-    DodgeBehavior = Cast<UDodgeBehavior>(aPawn->GetComponentByClass(UDodgeBehavior::StaticClass()));
+    AttackBehavior = GetPawnComponent<UAttackBehavior>();
+    DodgeBehavior = GetPawnComponent<UDodgeBehavior>();
+    TargetSelector = GetPawnComponent<UTargetSelectorComponent>();
 }
 
 void ABattleCharacterController::SetupInputComponent()
@@ -46,6 +43,14 @@ void ABattleCharacterController::SetupInputComponent()
             IE_Released,
             this,
             &ABattleCharacterController::OnInputActionStopDodging
+        );
+
+        InputComponent->BindAction
+        (
+            SelectNextTargetEventName,
+            IE_Released,
+            this,
+            &ABattleCharacterController::OnInputActionSelectNextTarget
         );
     }
 }
@@ -79,7 +84,6 @@ void ABattleCharacterController::OnInputActionDodge()
     const FVector Direction = TempInputAxis.IsZero() ? FVector::ZeroVector :
         UKismetMathLibrary::RotateAngleAxis(Rotator.Vector(), AngleDeg, FVector::ZAxisVector);
 
-
     ABattleCharacter* BattleCharacter = Cast<ABattleCharacter>(GetPawn());
     if (IsValid(BattleCharacter) && BattleCharacter->ExecuteDodge(Direction))
     {
@@ -93,6 +97,13 @@ void ABattleCharacterController::OnInputActionDodge()
 void ABattleCharacterController::OnInputActionStopDodging()
 {
 
+}
+
+void ABattleCharacterController::OnInputActionSelectNextTarget()
+{
+    if (IsValid(TargetSelector)) {
+        TargetSelector->SelectNextTarget();
+    }
 }
 
 void ABattleCharacterController::OnAnimationStateEnter(const FString& AnimStateName)

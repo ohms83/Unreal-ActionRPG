@@ -31,6 +31,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Target Selector")
 	void SelectTarget(AActor* NextTarget);
 	UFUNCTION(BlueprintCallable, Category = "Target Selector")
+	void SelectNextTarget();
+	UFUNCTION(BlueprintCallable, Category = "Target Selector")
 	AActor* GetSelectedTarget() const { return Target.Get(); }
 
 	// Get the actor that's currently targetting its owner
@@ -42,12 +44,17 @@ public:
 	bool bSmoothRotation = true;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target Selector")
 	float RotationRate = 0.2f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target Selector")
+	float TargetSearchRadius = 1000.f;
 
 protected:
 	void OnTargetDead(class ABattleCharacter* Target);
 
 	void SelectTarget_Internal(AActor* NextTarget);
 	void UnselectTarget_Internal(AActor* NextTarget);
+
+	void UpdatetargetList();
+	void RemoveFromTargetList(AActor* Actor);
 
 	static void SetBeingTargettedBy(AActor* TargettingActor, AActor* TargetActor);
 
@@ -56,4 +63,5 @@ private:
 	// The actor that's currently targetting its owner
 	TWeakObjectPtr<AActor> BeingTargettedBy;
 	FDelegateHandle OnTargetDeadDelegateHandle;
+	TArray<TWeakObjectPtr<AActor>> TargetList;
 };

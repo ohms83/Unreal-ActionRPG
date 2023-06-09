@@ -4,6 +4,7 @@
 #include "TargetSelectorComponent.h"
 
 #include "DrawDebugHelpers.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 #include "ActionRPG/Controller/ThirdPersonController.h"
 #include "ActionRPG/Character/BattleCharacter.h"
@@ -45,7 +46,7 @@ void UTargetSelectorComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 		return;
 	}
 
-	// ...
+	// The following section ONLY works when the Target is valid
 	APawn* Pawn = Cast<APawn>(GetOwner());
 	if (!IsValid(Pawn)) {
 		return;
@@ -88,12 +89,29 @@ void UTargetSelectorComponent::SelectTarget(AActor* NextTarget)
 	{
 		SelectTarget_Internal(NextTarget);
 	}
-	else if(Target.IsValid())
+	if(Target.IsValid())
 	{
 		UnselectTarget_Internal(Target.Get());
 	}
 
 	Target = NextTarget;
+}
+
+void UTargetSelectorComponent::SelectNextTarget()
+{
+	UpdatetargetList();
+
+	if (TargetList.Num() == 0) {
+		return;
+	}
+
+	int32 Index = (Target.IsValid() ? TargetList.Find(Target) : -1) + 1;
+	if (TargetList.IsValidIndex(Index)) {
+		SelectTarget(TargetList[Index].Get());
+	}
+	else {
+		SelectTarget(nullptr);
+	}
 }
 
 void UTargetSelectorComponent::OnTargetDead(ABattleCharacter* DeadTarget)
@@ -102,6 +120,7 @@ void UTargetSelectorComponent::OnTargetDead(ABattleCharacter* DeadTarget)
 	{
 		// Unselect the target
 		SelectTarget(nullptr);
+		RemoveFromTargetList(DeadTarget);
 	}
 }
 
@@ -130,6 +149,69 @@ void UTargetSelectorComponent::UnselectTarget_Internal(AActor* NextTarget)
 	CurrentTargetChar->OnDeadDelegate.Remove(OnTargetDeadDelegateHandle);
 
 	SetBeingTargettedBy(nullptr, Target.Get());
+}
+
+void UTargetSelectorComponent::UpdatetargetList()
+{
+	// Remove invalidated actors
+	TArray<TWeakObjectPtr<AActor>> ActorsToRemove;
+	for (const auto ActorPtr : TargetList)
+	{
+		if (!ActorPtr.IsValid()) {
+			ActorsToRemove.AddUnique(ActorPtr);
+		}
+	}
+
+	for (const auto ActorPtr : ActorsToRemove) {
+		TargetList.Remove(ActorPtr);
+	}
+
+	// Searches for new targets
+	TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes = {
+		UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Pawn),
+	};
+	TArray<AActor*> ActorsToIgnore = {
+		GetOwner(),
+	};
+
+	TArray<AActor*> Results;
+	UKismetSystemLibrary::SphereOverlapActors(
+		this,
+		GetOwner()->GetActorLocation(),
+		TargetSearchRadius,
+		ObjectTypes,
+		ABattleCharacter::StaticClass(),
+		ActorsToIgnore,
+		Results
+	);
+
+	FVector OwnerLocation = GetOwner()->GetActorLocation();
+	Results.Sort([OwnerLocation](const AActor& A, const AActor& B) -> bool
+		{
+			float DA = FVector::Dist(OwnerLocation, A.GetActorLocation());
+			float DB = FVector::Dist(OwnerLocation, B.GetActorLocation());
+			return DA < DB;
+		}
+	);
+
+	for (auto Actor : Results)
+	{
+		TargetList.AddUnique(Actor);
+	}
+}
+
+void UTargetSelectorComponent::RemoveFromTargetList(AActor* Actor)
+{
+	TWeakObjectPtr<AActor> ActorToRemove;
+	for (const auto ActorPtr : TargetList)
+	{
+		if (ActorPtr.Get() == Actor) {
+			ActorToRemove = ActorPtr;
+			break;
+		}
+	}
+
+	TargetList.Remove(ActorToRemove);
 }
 
 void UTargetSelectorComponent::SetBeingTargettedBy(AActor* TargettingActor, AActor* TargetActor)

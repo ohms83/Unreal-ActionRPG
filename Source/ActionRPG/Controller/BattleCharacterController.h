@@ -6,9 +6,6 @@
 #include "ThirdPersonController.h"
 #include "BattleCharacterController.generated.h"
 
-class UAttackBehavior;
-class UDodgeBehavior;
-
 /**
  * 
  */
@@ -26,17 +23,35 @@ protected:
 	virtual void OnInputActionDodge();
 	virtual void OnInputActionStopDodging();
 
+	virtual void OnInputActionSelectNextTarget();
+
 	UFUNCTION(BlueprintImplementableEvent)
 	void InputActionDodge_Bluerprint();
 
 	virtual void OnAnimationStateEnter(const FString& AnimStateName) override;
+
+	template<class T> T* GetPawnComponent() const
+	{
+		const APawn* aPawn = GetPawn();
+		if (!IsValid(aPawn)) {
+			return nullptr;
+		}
+
+		return Cast<T>(aPawn->GetComponentByClass(T::StaticClass()));
+	}
 
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	FName AttackEventName = "Attack";
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	FName DodgeEventName = "Dodge";
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	FName SelectNextTargetEventName = "SelectNextTarget";
 
-	UAttackBehavior* AttackBehavior = nullptr;
-	UDodgeBehavior* DodgeBehavior = nullptr;
+	UPROPERTY()
+	class UAttackBehavior* AttackBehavior = nullptr;
+	UPROPERTY()
+	class UDodgeBehavior* DodgeBehavior = nullptr;
+	UPROPERTY()
+	class UTargetSelectorComponent* TargetSelector = nullptr;
 };
