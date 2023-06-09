@@ -11,16 +11,15 @@
 
 #include "BattleCharacter.generated.h"
 
-class UAttackBehavior;
-class UDodgeBehavior;
-class UTargetSelectorComponent;
 class AEquipment;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FGenericCharacterDelegate, class ABattleCharacter* /*ThisCharacter*/);
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGenericCharacterDynamicDelegate, class ABattleCharacter*, Character);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FCharacterDeadDynamicDelegate, class ABattleCharacter*, DeadCharacter, class ABattleCharacter*, Attacker, struct FDamageEvent const&, DamageEvent);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FTakeMeleeDamageDynamicDelegate, class ABattleCharacter*, Attacker, struct FMeleeDamageEvent const& , DamageEvent, float, RealDamageAmount);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FAttackHitDynamicDelegate, class ABattleCharacter*, Attacker, const FDamageEvent&, DamageEvent);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FCharacterSpecialMoveDynamicDelegate, class ABattleCharacter*, Character, float, Countdown);
 
 UENUM(BlueprintType)
 enum class ECharacterOutlineType : uint8
@@ -82,11 +81,19 @@ public: // Stats
 
 public: // Components
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gameplay Component")
-	UAttackBehavior* AttackBehavior = nullptr;
+	class UAttackBehavior* AttackBehavior = nullptr;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gameplay Component")
-	UDodgeBehavior* DodgeBehavior = nullptr;
+	class UDodgeBehavior* DodgeBehavior = nullptr;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gameplay Component")
-	UTargetSelectorComponent* TargetSelector = nullptr;
+	class UTargetSelectorComponent* TargetSelector = nullptr;
+	/**
+	* The outer capsule collision used for determining Parry and Flash Move.
+	* If a block or dodge actions were trigger in the time between this collision was triggered
+	* and before the actual inner collision was hit, the special Parry or Flash Move skills
+	* will be activated.
+	*/
+	/*UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gameplay Component")
+	class UCapsuleComponent* OuterCollision = nullptr;*/
 
 public: // Attack
 	UFUNCTION(BlueprintCallable, Category = "Battle Character|Attack")
@@ -141,19 +148,20 @@ private: // Damage
 	FTimerHandle InvincibleFrameHandle;
 	FTimerHandle HitStopHandle;
 	bool bCanTakeDamage = true;
+	bool bHitStopEnabled = true;
 
-public:
+public: // Knockback
 	UFUNCTION(BlueprintCallable, Category = "Battle Character|Damage")
 	void Knockback(AActor* Attacker, const FVector2D& RelativeDirection, float Speed);
 	// Compute a knockback direction in world-space
 	UFUNCTION(BlueprintCallable, Category = "Battle Character|Damage")
 	FVector ConmputeKnockbackDirection(AActor* HitActor, const FVector2D& RelativeDirection);
 
-protected:
+protected: // Knockback
 	// Periodically check whether the knockback has ended and reset bKnockback flag.
 	void CheckKnockbackEnd();
 
-private:
+private: // Knockback
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle Character|Damage", meta = (AllowPrivateAccess = "true"))
 	bool bKnockback = false;
 
@@ -198,7 +206,7 @@ public: // Equipment
 	UFUNCTION(BlueprintCallable, Category = "Battle Character|Equipment")
 	void UnequipAll(bool bDestroy = true, bool bUpdateStats = true);
 
-protected:
+protected: // Equipment
 	// An internal function that contains the logics for equiping weapon
 	void Equip_Weapon(AEquipment* Equipment);
 	// An internal function that contains the logics for unequiping weapon
@@ -220,4 +228,40 @@ public: // Target
 	AActor* GetSelectedTarget() const;
 	UFUNCTION(BlueprintCallable, Category = "Battle Character|Target")
 	bool IsBeingTargetted() const;
+
+public: // Special moves
+	UFUNCTION(BlueprintCallable, Category = "Battle Character|Special Moves")
+	bool IsSpecialMoveFlag() const { return bSpecialMoveFlag; }
+	UFUNCTION(BlueprintCallable, Category = "Battle Character|Special Moves")
+	float GetFlashMoveScaledCountdownTime() const;
+
+protected:
+	void TriggerFlashMove();
+	void TriggerParry();
+	void OnSpecialMoveEnd();
+
+public:
+	// TODO: Move out of character classes
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle Character|Debug")
+	bool bAutoFlashMove = false;
+
+	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category = "Battle Character|Special Moves")
+	FCharacterSpecialMoveDynamicDelegate OnFlashMoveDynamicDelegate;
+
+private: // Special moves
+	FTimerHandle SpecialMoveFrameHandle;
+	// This flag will be raised when the Outer Collision was hit and before the inner
+	// CollisionCylinder being hit. Any dodge or block actions triggered during this time
+	// will activate Parry or Flash Move special moves.
+	bool bSpecialMoveFlag = false;
+	// A flag indicating whether this character can trigger Parry and Flash Move.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Battle Character|Special Moves", meta = (AllowPrivateAccess = "true"))
+	bool bCanTriggerSpecialMoves = true;
+	// Special-move's effective time in seconds.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Battle Character|Special Moves", meta = (AllowPrivateAccess = "true"))
+	float SpecialMoveFrame = 3.f;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Battle Character|Special Moves", meta = (AllowPrivateAccess = "true"))
+	float FlashMoveGlobalTimeDilation = 0.5f;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Battle Character|Special Moves", meta = (AllowPrivateAccess = "true"))
+	float FlashMoveCharacterTimeDilation = 2.f;
 };

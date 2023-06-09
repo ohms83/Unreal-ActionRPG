@@ -28,6 +28,16 @@ ABattleCharacter::ABattleCharacter()
 	Stats.MaxHp = 100;
 	Stats.Atk = 10;
 	Stats.Def = 10;
+
+	/*OuterCollision = CreateDefaultSubobject<UCapsuleComponent>(TEXT("Outer Collision"));
+	OuterCollision->InitCapsuleSize(60.0f, 100.0f);
+	OuterCollision->SetCollisionProfileName(UCollisionProfile::Pawn_ProfileName);
+
+	OuterCollision->CanCharacterStepUpOn = ECB_No;
+	OuterCollision->SetShouldUpdatePhysicsVolume(false);
+	OuterCollision->SetCanEverAffectNavigation(false);
+	OuterCollision->bDynamicObstacle = false;
+	OuterCollision->SetupAttachment(GetRootComponent());*/
 }
 
 // Called when the game starts or when spawned
@@ -155,6 +165,10 @@ void ABattleCharacter::OnWeaponHit(AWeapon* Weapon, const TArray<FHitResult>& Hi
 			continue;
 		}
 
+		if (SpecialMoveFrameHandle.IsValid()) {
+			CurrentAttack.HitStop = 0;
+		}
+
 		float RealDamageValue = 0;
 		FMeleeDamageEvent DamageEvent;
 		DamageEvent.HitInfo = HitResult;
@@ -204,6 +218,14 @@ bool ABattleCharacter::ExecuteDodge(const FVector& Direction)
 
 	if (DodgeBehavior->Dodge(Direction))
 	{
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT || WITH_EDITOR
+		bSpecialMoveFlag |= bAutoFlashMove;
+#endif
+		if (bSpecialMoveFlag)
+		{
+			TriggerFlashMove();
+		}
+
 		AttackBehavior->CancelAttack();
 		TargetSelector->LockComponent(this);
 		return true;
@@ -226,26 +248,23 @@ float ABattleCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Damag
 		return 0;
 	}
 
+	const FMeleeDamageEvent* MeleeDamageEvent = DamageEvent.IsOfType(MELEE_DAMAGE_EVENT_CLASS_ID) ?
+		static_cast<const FMeleeDamageEvent*>(&DamageEvent) : nullptr;
+	const FHitResult* HitInfo = (MeleeDamageEvent ? &MeleeDamageEvent->HitInfo : nullptr);
+
+	const FAttackData* AttackData = (MeleeDamageEvent ? &MeleeDamageEvent->AttackData : nullptr);
 	// Hit-stop
-	float HitStop = 0;
-	float HitStopTimeDilation = 0;
+	float HitStop = (AttackData ? AttackData->HitStop : 0);
+	float HitStopTimeDilation = (AttackData ? AttackData->HitStopTimeDilation : 0);
 	// Knockback
-	FVector2D KnockbackDirection = FVector2D::ZeroVector;
-	float KnockbackSpeed = 0;
+	FVector2D KnockbackDirection = (AttackData ? AttackData->KnockbackDirection : FVector2D::ZeroVector);
+	float KnockbackSpeed = (AttackData ? AttackData->KnockbackSpeed : 0);
 
-	if (DamageEvent.IsOfType(MELEE_DAMAGE_EVENT_CLASS_ID))
-	{
-		const FMeleeDamageEvent& MeleeDamageEvent = static_cast<const FMeleeDamageEvent&>(DamageEvent);
-		const FAttackData& AttackData = MeleeDamageEvent.AttackData;
-
-		HitStop = AttackData.HitStop;
-		HitStopTimeDilation = AttackData.HitStopTimeDilation;
-		KnockbackDirection = AttackData.KnockbackDirection;
-		KnockbackSpeed = AttackData.KnockbackSpeed;
-		UE_LOG(LogTemp, Log, TEXT("HitStop=%.2f HitStopTimeDilation=%.2f"), HitStop, HitStopTimeDilation);
-		
-		OnTakeMeleeDamageDelegate.Broadcast(this, MeleeDamageEvent, RealDamageAmount);
+	if (MeleeDamageEvent)
+	{	
+		OnTakeMeleeDamageDelegate.Broadcast(this, *MeleeDamageEvent, RealDamageAmount);
 	}
+	UE_LOG(LogTemp, Log, TEXT("HitStop=%.2f HitStopTimeDilation=%.2f"), HitStop, HitStopTimeDilation);
 
 	if (HitStop > 0) {
 		StartHitStop(HitStop, HitStopTimeDilation);
@@ -277,6 +296,8 @@ float ABattleCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Damag
 	EnableTraceHit(false);
 
 	bCanTakeDamage = false;
+	bSpecialMoveFlag = false;
+
 	GetWorld()->GetTimerManager().SetTimer(
 		InvincibleFrameHandle,
 		this,
@@ -298,7 +319,13 @@ bool ABattleCharacter::ShouldTakeDamage(float Damage, FDamageEvent const& Damage
 
 void ABattleCharacter::StartHitStop(float Seconds, float TimeDilation)
 {
+	if (!bHitStopEnabled) {
+		return;
+	}
+
 	CustomTimeDilation = TimeDilation;
+	//Seconds *= (bSpecialMoveFlag ? FlashMoveGlobalTimeDilation : 1.f);
+	//UE_LOG(LogTemp, Log, TEXT("%s StartHitStop Seconds=%.2f"), *GetName(), Seconds);
 	GetWorld()->GetTimerManager().SetTimer(
 		HitStopHandle,
 		this,
@@ -310,6 +337,10 @@ void ABattleCharacter::StartHitStop(float Seconds, float TimeDilation)
 
 void ABattleCharacter::EndHitStop()
 {
+	if (!bHitStopEnabled) {
+		return;
+	}
+
 	CustomTimeDilation = 1;
 	GetWorld()->GetTimerManager().ClearTimer(HitStopHandle);
 }
@@ -632,4 +663,45 @@ AActor* ABattleCharacter::GetSelectedTarget() const
 bool ABattleCharacter::IsBeingTargetted() const
 {
 	return TargetSelector->GetActorTargettingOwner() != nullptr;
+}
+
+float ABattleCharacter::GetFlashMoveScaledCountdownTime() const
+{
+	return SpecialMoveFrame * FlashMoveGlobalTimeDilation;
+}
+
+void ABattleCharacter::TriggerFlashMove()
+{
+	bCanTakeDamage = false;
+	bSpecialMoveFlag = false;
+
+	auto CurrentWorld = GetWorld();
+
+	float ScaledCountdownTime = GetFlashMoveScaledCountdownTime();
+	GetWorld()->GetTimerManager().SetTimer(
+		SpecialMoveFrameHandle,
+		this,
+		&ABattleCharacter::OnSpecialMoveEnd,
+		ScaledCountdownTime,
+		false
+	);
+
+	GetWorld()->GetTimerManager().ClearTimer(InvincibleFrameHandle);
+
+	UGameplayStatics::SetGlobalTimeDilation(this, FlashMoveGlobalTimeDilation);
+	CustomTimeDilation = FlashMoveCharacterTimeDilation / FlashMoveGlobalTimeDilation;
+
+	OnFlashMoveDynamicDelegate.Broadcast(this, SpecialMoveFrame);
+}
+
+void ABattleCharacter::TriggerParry()
+{
+}
+
+void ABattleCharacter::OnSpecialMoveEnd()
+{
+	UGameplayStatics::SetGlobalTimeDilation(this, 1.f);
+	CustomTimeDilation = 1.f;
+	bCanTakeDamage = true;
+	bSpecialMoveFlag = false;
 }
