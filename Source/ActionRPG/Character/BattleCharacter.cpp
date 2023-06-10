@@ -311,18 +311,10 @@ float ABattleCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Damag
 	DodgeBehavior->TempLock(this, 0.1f);
 	EnableTraceHit(false);
 
-	bCanTakeDamage = false;
 	bSpecialMoveFlag = false;
 
 	ClearTimer(FlashMoveActivationWindowHandle);
-
-	GetWorld()->GetTimerManager().SetTimer(
-		InvincibleFrameHandle,
-		this,
-		&ABattleCharacter::OnInvincibleFrameEnd,
-		InvincibleFrame,
-		false
-	);
+	StartInvincibleFrame(InvincibleFrame);
 
 	return RealDamageAmount;
 }
@@ -361,6 +353,22 @@ void ABattleCharacter::EndHitStop()
 
 	CustomTimeDilation = 1;
 	GetWorld()->GetTimerManager().ClearTimer(HitStopHandle);
+}
+
+void ABattleCharacter::StartInvincibleFrame(float Seconds)
+{
+	bCanTakeDamage = false;
+
+	FTimerDelegate InvincibleFrameDelegate;
+	InvincibleFrameDelegate.BindLambda([this]() {
+		bCanTakeDamage = true;
+	});
+	SetTimer(
+		InvincibleFrameHandle,
+		InvincibleFrameDelegate,
+		Seconds,
+		false
+	);
 }
 
 bool ABattleCharacter::IsDead() const
@@ -690,10 +698,7 @@ float ABattleCharacter::GetFlashMoveScaledCountdownTime() const
 
 void ABattleCharacter::TriggerFlashMove()
 {
-	bCanTakeDamage = false;
 	bSpecialMoveFlag = false;
-
-	auto CurrentWorld = GetWorld();
 
 	float ScaledCountdownTime = GetFlashMoveScaledCountdownTime();
 	GetWorld()->GetTimerManager().SetTimer(
@@ -703,6 +708,7 @@ void ABattleCharacter::TriggerFlashMove()
 		ScaledCountdownTime,
 		false
 	);
+	StartInvincibleFrame(ScaledCountdownTime);
 
 	ClearTimer(InvincibleFrameHandle);
 	ClearTimer(FlashMoveActivationWindowHandle);

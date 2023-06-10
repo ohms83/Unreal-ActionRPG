@@ -124,6 +124,8 @@ public: // Damage
 	void StartHitStop(float Seconds, float TimeDilation = 0.1f);
 	void EndHitStop();
 
+	void StartInvincibleFrame(float Seconds);
+
 protected: // Damage
 	void PlayDamageMontage(struct FDamageEvent const& DamageEvent, AActor* DamageCauser);
 	void PlayHitFX(struct FDamageEvent const& DamageEvent, AActor* DamageCauser);
