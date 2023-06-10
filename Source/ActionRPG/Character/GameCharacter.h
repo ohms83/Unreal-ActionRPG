@@ -30,6 +30,11 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+protected: // Timer
+	void SetTimer(FTimerHandle& OutHandle, FTimerDelegate Delegate, float Rate, bool bLoop, float FirstDelay = -1.0f);
+	void ClearTimer(FTimerHandle& OutHandle);
+	bool IsTimerActive(FTimerHandle TimerHandle);
+
 protected:
 	TWeakObjectPtr<UGameCharacterAnimInstance> AnimInstance;
 };

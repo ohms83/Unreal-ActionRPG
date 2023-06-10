@@ -12,7 +12,10 @@
 #include "ActionRPG/Character/GameCharacterAnimInstance.h"
 
 #include "NiagaraSystem.h"
+#include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
+
+#include "Sound/SoundWave.h"
 
 // Sets default values
 ABattleCharacter::ABattleCharacter()
@@ -218,12 +221,17 @@ bool ABattleCharacter::ExecuteDodge(const FVector& Direction)
 
 	if (DodgeBehavior->Dodge(Direction))
 	{
-#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT || WITH_EDITOR
-		bSpecialMoveFlag |= bAutoFlashMove;
-#endif
-		if (bSpecialMoveFlag)
+		// Flash Move
 		{
-			TriggerFlashMove();
+			FTimerDelegate FlashMoveTimerDelegate;
+			FlashMoveTimerDelegate.BindLambda([]() {
+			});
+			SetTimer(
+				FlashMoveActivationWindowHandle,
+				FlashMoveTimerDelegate,
+				FlashMoveActicationWindow,
+				false
+			);
 		}
 
 		AttackBehavior->CancelAttack();
@@ -245,6 +253,13 @@ float ABattleCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Damag
 {
 	float RealDamageAmount = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 	if (RealDamageAmount <= 0) {
+		return 0;
+	}
+	
+	// Detects special moves
+	if (IsTimerActive(FlashMoveActivationWindowHandle))
+	{
+		TriggerFlashMove();
 		return 0;
 	}
 
@@ -293,10 +308,13 @@ float ABattleCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Damag
 	PlayHitFX(DamageEvent, DamageCauser);
 
 	AttackBehavior->TempLock(this, 0.1f);
+	DodgeBehavior->TempLock(this, 0.1f);
 	EnableTraceHit(false);
 
 	bCanTakeDamage = false;
 	bSpecialMoveFlag = false;
+
+	ClearTimer(FlashMoveActivationWindowHandle);
 
 	GetWorld()->GetTimerManager().SetTimer(
 		InvincibleFrameHandle,
@@ -686,10 +704,33 @@ void ABattleCharacter::TriggerFlashMove()
 		false
 	);
 
-	GetWorld()->GetTimerManager().ClearTimer(InvincibleFrameHandle);
+	ClearTimer(InvincibleFrameHandle);
+	ClearTimer(FlashMoveActivationWindowHandle);
 
 	UGameplayStatics::SetGlobalTimeDilation(this, FlashMoveGlobalTimeDilation);
 	CustomTimeDilation = FlashMoveCharacterTimeDilation / FlashMoveGlobalTimeDilation;
+
+	if (IsValid(FlashmoveVFX))
+	{
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			this,
+			FlashmoveVFX,
+			GetActorLocation(),
+			//Orientation + HitVFX.Orientation,
+			GetActorRotation(),
+			FVector::OneVector
+		);
+	}
+
+	if (IsValid(FlashMoveSFX))
+	{
+		UGameplayStatics::PlaySoundAtLocation(
+			this,
+			FlashMoveSFX,
+			GetActorLocation(),
+			GetActorRotation()
+		);
+	}
 
 	OnFlashMoveDynamicDelegate.Broadcast(this, SpecialMoveFrame);
 }

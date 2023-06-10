@@ -249,6 +249,7 @@ public:
 	FCharacterSpecialMoveDynamicDelegate OnFlashMoveDynamicDelegate;
 
 private: // Special moves
+	FTimerHandle FlashMoveActivationWindowHandle;
 	FTimerHandle SpecialMoveFrameHandle;
 	// This flag will be raised when the Outer Collision was hit and before the inner
 	// CollisionCylinder being hit. Any dodge or block actions triggered during this time
@@ -260,8 +261,15 @@ private: // Special moves
 	// Special-move's effective time in seconds.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Battle Character|Special Moves", meta = (AllowPrivateAccess = "true"))
 	float SpecialMoveFrame = 3.f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Battle Character|Special Moves", meta = (AllowPrivateAccess = "true"))
+	float FlashMoveActicationWindow = 0.15f;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Battle Character|Special Moves", meta = (AllowPrivateAccess = "true"))
 	float FlashMoveGlobalTimeDilation = 0.5f;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Battle Character|Special Moves", meta = (AllowPrivateAccess = "true"))
 	float FlashMoveCharacterTimeDilation = 2.f;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Battle Character|Special Moves", meta = (AllowPrivateAccess = "true"))
+	class UNiagaraSystem* FlashmoveVFX;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Battle Character|Special Moves", meta = (AllowPrivateAccess = "true"))
+	class USoundWave* FlashMoveSFX;
 };

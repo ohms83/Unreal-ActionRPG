@@ -36,3 +36,24 @@ void AGameCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
 }
+
+void AGameCharacter::SetTimer(FTimerHandle& OutHandle, FTimerDelegate Delegate, float Rate, bool bLoop, float FirstDelay)
+{
+	GetWorld()->GetTimerManager().SetTimer(
+		OutHandle,
+		Delegate,
+		Rate,
+		bLoop,
+		FirstDelay
+	);
+}
+
+void AGameCharacter::ClearTimer(FTimerHandle& OutHandle)
+{
+	GetWorld()->GetTimerManager().ClearTimer(OutHandle);
+}
+
+bool AGameCharacter::IsTimerActive(FTimerHandle TimerHandle)
+{
+	return GetWorld()->GetTimerManager().IsTimerActive(TimerHandle);
+}
