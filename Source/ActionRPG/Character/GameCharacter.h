@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "ActionRPG/Command/CommandExecutor.h"
 
 #include "GameCharacter.generated.h"
 
@@ -11,13 +12,16 @@ class UGameCharacterAnimInstance;
 class UCharacterMovementComponent;
 
 UCLASS()
-class ACTIONRPG_API AGameCharacter : public ACharacter
+class ACTIONRPG_API AGameCharacter : public ACharacter, public ICommandExecutor
 {
 	GENERATED_BODY()
 
 public:
 	// Sets default values for this character's properties
 	AGameCharacter();
+
+	UFUNCTION(BlueprintCallable, Category = "Game Character|Command")
+	void RegisterCommand(UCommand* CommandClass);
 
 protected:
 	// Called when the game starts or when spawned

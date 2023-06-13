@@ -77,7 +77,7 @@ public: // Stats
 	bool IsSameTeam(AActor* const OtherActor) const;
 
 	// TODO: Move to Battle Manager
-	static float CalculateDamage(ABattleCharacter* Attacker, ABattleCharacter* Defender);
+	static float CalculateDamage(ABattleCharacter* Attacker, ABattleCharacter* Defender, const FAttackData& AttackData);
 
 public: // Components
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gameplay Component")
@@ -98,6 +98,8 @@ public: // Components
 public: // Attack
 	UFUNCTION(BlueprintCallable, Category = "Battle Character|Attack")
 	bool ExecuteAttack();
+	UFUNCTION(BlueprintCallable, Category = "Battle Character|Attack")
+	bool ExecuteSpecialAttack(bool bForceActivation = false);
 
 	UFUNCTION(BlueprintCallable, Category = "Battle Character|Attack")
 	void OnAnimNotifyAttackStart();
@@ -236,6 +238,10 @@ public: // Special moves
 	bool IsSpecialMoveFlag() const { return bSpecialMoveFlag; }
 	UFUNCTION(BlueprintCallable, Category = "Battle Character|Special Moves")
 	float GetFlashMoveScaledCountdownTime() const;
+	UFUNCTION(BlueprintCallable, Category = "Battle Character|Special Moves")
+	float GetSpecialMoveGuage() const { return SpecialMoveGuage; }
+	UFUNCTION(BlueprintCallable, Category = "Battle Character|Special Moves")
+	void UpdateSpecialMoveGuage(float AddValue);
 
 protected:
 	void TriggerFlashMove();
@@ -243,19 +249,15 @@ protected:
 	void OnSpecialMoveEnd();
 
 public:
-	// TODO: Move out of character classes
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle Character|Debug")
-	bool bAutoFlashMove = false;
-
 	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category = "Battle Character|Special Moves")
 	FCharacterSpecialMoveDynamicDelegate OnFlashMoveDynamicDelegate;
+	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category = "Battle Character|Special Moves")
+	FCharacterSpecialMoveDynamicDelegate OnFlashMoveEndDynamicDelegate;
 
 private: // Special moves
 	FTimerHandle FlashMoveActivationWindowHandle;
 	FTimerHandle SpecialMoveFrameHandle;
-	// This flag will be raised when the Outer Collision was hit and before the inner
-	// CollisionCylinder being hit. Any dodge or block actions triggered during this time
-	// will activate Parry or Flash Move special moves.
+	// A flag indicating whether this character is performing a special move.
 	bool bSpecialMoveFlag = false;
 	// A flag indicating whether this character can trigger Parry and Flash Move.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Battle Character|Special Moves", meta = (AllowPrivateAccess = "true"))
@@ -274,4 +276,8 @@ private: // Special moves
 	class UNiagaraSystem* FlashmoveVFX;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Battle Character|Special Moves", meta = (AllowPrivateAccess = "true"))
 	class USoundWave* FlashMoveSFX;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Battle Character|Special Moves", meta = (AllowPrivateAccess = "true"))
+	TSubclassOf<class UTeleportAttackCommand> TeleportAttackCommandClass;
+
+	float SpecialMoveGuage = 0;
 };

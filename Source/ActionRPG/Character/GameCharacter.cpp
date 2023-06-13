@@ -12,6 +12,14 @@ AGameCharacter::AGameCharacter()
 
 }
 
+void AGameCharacter::RegisterCommand(UCommand* Command)
+{
+	if (Implements<UCommandExecutor>())
+	{
+		ICommandExecutor::Execute_QueueCommand(this, Command);
+	}
+}
+
 // Called when the game starts or when spawned
 void AGameCharacter::BeginPlay()
 {
@@ -28,6 +36,11 @@ void AGameCharacter::BeginPlay()
 void AGameCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	if (Implements<UCommandExecutor>())
+	{
+		ICommandExecutor::Execute_RunCommand(this, DeltaTime);
+	}
 }
 
 // Called to bind functionality to input

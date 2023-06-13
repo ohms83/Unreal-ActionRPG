@@ -97,29 +97,31 @@ void UTargetSelectorComponent::SelectTarget(AActor* NextTarget)
 	Target = NextTarget;
 }
 
-void UTargetSelectorComponent::SelectNextTarget()
+bool UTargetSelectorComponent::SelectNextTarget()
 {
 	UpdatetargetList();
 
 	if (TargetList.Num() == 0) {
-		return;
+		return false;
 	}
 
 	int32 Index = (Target.IsValid() ? TargetList.Find(Target) : -1) + 1;
-	if (TargetList.IsValidIndex(Index)) {
-		SelectTarget(TargetList[Index].Get());
+	if (!TargetList.IsValidIndex(Index)) {
+		Index = 0;
 	}
-	else {
-		SelectTarget(nullptr);
-	}
+	
+	SelectTarget(TargetList[Index].Get());
+	return true;
 }
 
 void UTargetSelectorComponent::OnTargetDead(ABattleCharacter* DeadTarget)
 {
 	if (IsValid(DeadTarget) && Target == DeadTarget)
 	{
-		// Unselect the target
-		SelectTarget(nullptr);
+		if (!SelectNextTarget()) {
+			// Unselect the target
+			SelectTarget(nullptr);
+		}
 		RemoveFromTargetList(DeadTarget);
 	}
 }

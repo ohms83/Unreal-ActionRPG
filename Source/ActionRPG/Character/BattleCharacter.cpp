@@ -11,6 +11,8 @@
 #include "ActionRPG/Component/TargetSelectorComponent.h"
 #include "ActionRPG/Character/GameCharacterAnimInstance.h"
 
+#include "ActionRPG/Command/TeleportAttackCommand.h"
+
 #include "NiagaraSystem.h"
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
@@ -126,13 +128,13 @@ bool ABattleCharacter::IsSameTeam(AActor* const OtherActor) const
 	return IsValid(OtherCharacter) && OtherCharacter->GetTeam() == GetTeam();
 }
 
-float ABattleCharacter::CalculateDamage(ABattleCharacter* Attacker, ABattleCharacter* Defender)
+float ABattleCharacter::CalculateDamage(ABattleCharacter* Attacker, ABattleCharacter* Defender, const FAttackData& AttackData)
 {
 	if (!IsValid(Attacker) || !IsValid(Defender)) {
 		return 0;
 	}
 
-	float Damage = ((4.0f * Attacker->Stats.Atk) - Defender->Stats.Def) / (1 + Defender->Stats.Def);
+	float Damage = ((4.0f * Attacker->Stats.Atk) - Defender->Stats.Def) / (1 + Defender->Stats.Def) * AttackData.DamageModifier;
 	Damage = FMath::Max(1.f, Damage);
 	return Damage;
 }
@@ -180,12 +182,16 @@ void ABattleCharacter::OnWeaponHit(AWeapon* Weapon, const TArray<FHitResult>& Hi
 		ABattleCharacter* HitCharacter = Cast<ABattleCharacter>(HitResult.Actor);
 		if (HitCharacter)
 		{
-			DamageEvent.Damage = CalculateDamage(this, HitCharacter);
+			DamageEvent.Damage = CalculateDamage(this, HitCharacter, CurrentAttack);
 			RealDamageValue = HitCharacter->TakeDamage(DamageEvent.Damage, DamageEvent, GetController(), Weapon);
 		}
 
 		if (CurrentAttack.HitStop > 0 && RealDamageValue > 0) {
 			StartHitStop(CurrentAttack.HitStop, CurrentAttack.HitStopTimeDilation);
+		}
+
+		if (RealDamageValue > 0) {
+			UpdateSpecialMoveGuage(0.05f);
 		}
 
 		OnAttackHitDelegate.Broadcast(this, DamageEvent);
@@ -211,6 +217,36 @@ bool ABattleCharacter::ExecuteAttack()
 		return false;
 	}
 	return AttackBehavior->ComboAttack();
+}
+
+bool ABattleCharacter::ExecuteSpecialAttack(bool bForceActivation)
+{
+	if (IsDead()) {
+		return false;
+	}
+
+	if (!bForceActivation && SpecialMoveGuage < 1.0f) {
+		return false;
+	}
+
+	auto Command = NewObject<UTeleportAttackCommand>(this, TeleportAttackCommandClass);
+
+	AActor* SelectedTarget = TargetSelector->GetSelectedTarget();
+	if (SelectedTarget)
+	{
+		Command->TargetLocation = SelectedTarget->GetActorLocation() - (GetActorForwardVector() * 100.f);
+	}
+	else
+	{
+		Command->TargetLocation = GetActorLocation() + (GetActorForwardVector() * 500.f);
+	}
+	RegisterCommand(Command);
+
+	if (!bForceActivation) {
+		SpecialMoveGuage = 0;
+	}
+
+	return true;
 }
 
 bool ABattleCharacter::ExecuteDodge(const FVector& Direction)
@@ -696,15 +732,25 @@ float ABattleCharacter::GetFlashMoveScaledCountdownTime() const
 	return SpecialMoveFrame * FlashMoveGlobalTimeDilation;
 }
 
+void ABattleCharacter::UpdateSpecialMoveGuage(float AddValue)
+{
+	SpecialMoveGuage += AddValue;
+	SpecialMoveGuage = FMath::Clamp<float>(SpecialMoveGuage, 0, 1);
+}
+
 void ABattleCharacter::TriggerFlashMove()
 {
-	bSpecialMoveFlag = false;
+	bSpecialMoveFlag = true;
 
+	FTimerDelegate FlashMoveTimerDelegate;
+	FlashMoveTimerDelegate.BindLambda([this]() {
+		OnSpecialMoveEnd();
+		OnFlashMoveEndDynamicDelegate.Broadcast(this, 0);
+	});
 	float ScaledCountdownTime = GetFlashMoveScaledCountdownTime();
 	GetWorld()->GetTimerManager().SetTimer(
 		SpecialMoveFrameHandle,
-		this,
-		&ABattleCharacter::OnSpecialMoveEnd,
+		FlashMoveTimerDelegate,
 		ScaledCountdownTime,
 		false
 	);
@@ -738,6 +784,7 @@ void ABattleCharacter::TriggerFlashMove()
 		);
 	}
 
+	UpdateSpecialMoveGuage(0.5f);
 	OnFlashMoveDynamicDelegate.Broadcast(this, SpecialMoveFrame);
 }
 

@@ -31,7 +31,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Target Selector")
 	void SelectTarget(AActor* NextTarget);
 	UFUNCTION(BlueprintCallable, Category = "Target Selector")
-	void SelectNextTarget();
+	bool SelectNextTarget();
 	UFUNCTION(BlueprintCallable, Category = "Target Selector")
 	AActor* GetSelectedTarget() const { return Target.Get(); }
 

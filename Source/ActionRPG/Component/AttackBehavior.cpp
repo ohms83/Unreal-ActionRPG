@@ -148,6 +148,11 @@ bool UAttackBehavior::RegisterAttackCommand(const FAttackData& Attack)
 		return false;
 	}
 
+	if (!IsValid(Attack.AttackMontage))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Trying to register an attack command with an invalid animation montage. UAttackBehavior::RegisterAttackCommand"));
+	}
+
 	//auto MovementComp = GetMovementComponent();
 	//if (MovementComp.IsValid() && MovementComp->IsFalling())
 	//{

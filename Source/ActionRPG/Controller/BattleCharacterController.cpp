@@ -14,6 +14,18 @@ void ABattleCharacterController::BeginPlay()
     AttackBehavior = GetPawnComponent<UAttackBehavior>();
     DodgeBehavior = GetPawnComponent<UDodgeBehavior>();
     TargetSelector = GetPawnComponent<UTargetSelectorComponent>();
+
+    ABattleCharacter* BattleCharacter = Cast<ABattleCharacter>(GetPawn());
+    if (IsValid(BattleCharacter))
+    {
+        FScriptDelegate FlashMoveBeginDelegate;
+        FlashMoveBeginDelegate.BindUFunction(this, "OnSpecialMoveTriggered");
+        FScriptDelegate FlashMoveEndDelegate;
+        FlashMoveEndDelegate.BindUFunction(this, "OnSpecialMoveEnded");
+
+        BattleCharacter->OnFlashMoveDynamicDelegate.Add(FlashMoveBeginDelegate);
+        BattleCharacter->OnFlashMoveEndDynamicDelegate.Add(FlashMoveEndDelegate);
+    }
 }
 
 void ABattleCharacterController::SetupInputComponent()
@@ -28,6 +40,13 @@ void ABattleCharacterController::SetupInputComponent()
             IE_Pressed,
             this,
             &ABattleCharacterController::OnInputActionAttack
+        );
+        InputComponent->BindAction
+        (
+            SpecialAttackEventName,
+            IE_Pressed,
+            this,
+            &ABattleCharacterController::OnInputActionAttackSpecial
         );
 
         InputComponent->BindAction
@@ -64,7 +83,35 @@ void ABattleCharacterController::OnInputActionAttack()
     ABattleCharacter* BattleCharacter = Cast<ABattleCharacter>(GetPawn());
     if (IsValid(BattleCharacter))
     {
-        BattleCharacter->ExecuteAttack();
+        if (bOneshotSpecialAttack)
+        {
+            const bool bHastarget = TargetSelector ? TargetSelector->GetSelectedTarget() != nullptr : false;
+            if (!bHastarget) {
+                TargetSelector->SelectNextTarget();
+            }
+            BattleCharacter->ExecuteSpecialAttack(true);
+            bOneshotSpecialAttack = false;
+        }
+        else {
+            BattleCharacter->ExecuteAttack();
+        }
+    }
+    else
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Controlled pawn is not an ABattleCharacter type!"));
+    }
+}
+
+void ABattleCharacterController::OnInputActionAttackSpecial()
+{
+    if (IsInputLocked(EInputLockFlag::Action)) {
+        return;
+    }
+
+    ABattleCharacter* BattleCharacter = Cast<ABattleCharacter>(GetPawn());
+    if (IsValid(BattleCharacter))
+    {
+        BattleCharacter->ExecuteSpecialAttack();
     }
     else
     {
@@ -109,4 +156,14 @@ void ABattleCharacterController::OnInputActionSelectNextTarget()
 void ABattleCharacterController::OnAnimationStateEnter(const FString& AnimStateName)
 {
     Super::OnAnimationStateEnter(AnimStateName);
+}
+
+void ABattleCharacterController::OnSpecialMoveTriggered(ABattleCharacter* BattleCharacter, float Countdown)
+{
+    bOneshotSpecialAttack = true;
+}
+
+void ABattleCharacterController::OnSpecialMoveEnded(ABattleCharacter* BattleCharacter, float Countdown)
+{
+    bOneshotSpecialAttack = false;
 }
